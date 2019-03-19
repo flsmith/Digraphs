@@ -11,9 +11,13 @@
 
 DeclareAttribute("AutomorphismGroup", IsDigraph);
 DeclareOperation("AutomorphismGroup", [IsDigraph, IsHomogeneousList]);
+DeclareOperation("AutomorphismGroup",
+                 [IsDigraph, IsHomogeneousList, IsList]);
 
 DeclareAttribute("BlissAutomorphismGroup", IsDigraph);
 DeclareOperation("BlissAutomorphismGroup", [IsDigraph, IsHomogeneousList]);
+DeclareOperation("BlissEdgeColouredAutomorphismGroup",
+                 [IsDigraph, IsHomogeneousList, IsList]);
 
 DeclareAttribute("NautyAutomorphismGroup", IsDigraph);
 DeclareOperation("NautyAutomorphismGroup", [IsDigraph, IsHomogeneousList]);
@@ -43,6 +47,7 @@ DeclareGlobalFunction("DigraphsUseNauty");
 BindGlobal("DIGRAPHS_UsingBliss", true);
 
 DeclareGlobalFunction("DIGRAPHS_ValidateVertexColouring");
+DeclareGlobalFunction("DIGRAPHS_ValidateEdgeColouring");
 
 DeclareOperation("IsDigraphAutomorphism", [IsDigraph, IsPerm]);
 DeclareOperation("IsDigraphIsomorphism", [IsDigraph, IsDigraph, IsPerm]);

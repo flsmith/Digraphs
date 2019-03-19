@@ -14,6 +14,8 @@
 
 #include "digraphs.h"
 
+#include <stdio.h>
+#include <stdint.h>   // for uint64_t
 #include <stdbool.h>  // for false, true, bool
 #include <stdlib.h>   // for NULL, free
 
@@ -1647,6 +1649,92 @@ BlissGraph* buildBlissDigraphWithColours(Obj digraph, Obj colours) {
   return graph;
 }
 
+// TODO: document mult (and everything else)
+BlissGraph* buildBlissGraphWithVertexEdgeColours(Obj digraph,
+                                                 Obj vert_colours,
+                                                 Obj edge_colours,
+                                                 Obj orientation_double) {
+  uint64_t    mult, num_vc, num_ec, n, i, j, k, nr;
+  Obj         adjj, adj;
+  BlissGraph* graph;
+
+  n      = DigraphNrVertices(digraph);
+  num_vc = 0;
+  num_ec = 0;
+  
+  // TODO: fix this at the GAP level
+  //mult = (orientation_double == True) ? 2 : 1;
+
+  mult = 2;
+
+  if (vert_colours) {
+    DIGRAPHS_ASSERT(n == (uint64_t) LEN_LIST(vert_colours));
+    for (i = 1; i <= n; i++) {
+      num_vc = MAX(num_vc,  (uint64_t) INT_INTOBJ(ELM_LIST(vert_colours, i)));
+    }
+  }
+
+  adj = OutNeighbours(digraph);
+  
+  if (edge_colours) {
+    DIGRAPHS_ASSERT(n == (uint64_t) LEN_LIST(edge_colours));
+    num_ec = 0;  
+    for (i = 1; i <= n; i++) {
+      Int len = LEN_LIST(ELM_PLIST(edge_colours, i));
+      DIGRAPHS_ASSERT(LEN_LIST(ELM_PLIST(adj, i)) == len);
+      for (Int l = 1; l <= len; l++) {
+        uint64_t x = INT_INTOBJ(ELM_LIST(ELM_LIST(edge_colours, i), l));
+        num_ec = MAX(num_ec, x); 
+      }
+    }
+  }
+
+  graph = bliss_digraphs_new(0);
+
+
+  // TODO: make this safe
+  uint64_t num_layers = 64 - __builtin_clzll(num_ec);
+
+  for (i = 1; i <= mult * num_layers; i += mult) {
+    for (j = 1; j <= n; j++) {
+      bliss_digraphs_add_vertex(
+          graph, (i - 1) * num_vc + INT_INTOBJ(ELM_LIST(vert_colours, j)));
+    }
+    if (mult == 2) {
+      for (j = 1; j <= n; j++) {
+        bliss_digraphs_add_vertex(
+            graph, i * num_vc + INT_INTOBJ(ELM_LIST(vert_colours, j)));
+      }
+    }
+  }
+
+  for (i = 1; i < num_layers; i++) {
+    for (j = 1; j <= mult * n; j++) {
+      bliss_digraphs_add_edge(
+          graph, (i - 1) * mult * n + (j - 1), i * mult * n + (j - 1));
+    }
+  }
+
+  for (j = 1; j <= n; j++) {
+    adjj = ELM_PLIST(adj, j);
+    nr   = LEN_PLIST(adjj);
+    for (k = 1; k <= nr; k++) {
+      uint64_t w = INT_INTOBJ(ELM_PLIST(adjj, k));
+      for (i = 0; i < num_layers; i++) {
+        uint64_t colour = INT_INTOBJ(ELM_LIST(ELM_LIST(edge_colours, j), k));
+        if ((1 << i) & colour) {
+          bliss_digraphs_add_edge(graph,
+                                  i * mult * n + (j - 1),
+                                  ((i + 1) * mult - 1) * n  + (w - 1));
+        }
+      }
+    }
+  }
+
+  bliss_digraphs_write_dot(graph, stdout); 
+  return graph;
+}
+
 BlissGraph* buildBlissMultiDigraphWithColours(Obj digraph, Obj colours) {
   UInt        n, i, j, k, l, nr;
   Obj         adji, adj;
@@ -1717,6 +1805,52 @@ static Obj FuncDIGRAPH_AUTOMORPHISMS(Obj self, Obj digraph, Obj colours) {
   } else {
     graph = buildBlissDigraphWithColours(digraph, colours);
   }
+
+  autos = NEW_PLIST(T_PLIST, 2);
+  n     = INTOBJ_INT(DigraphNrVertices(digraph));
+
+  SET_ELM_PLIST(autos, 1, NEW_PLIST(T_PLIST, 0));  // perms of the vertices
+  CHANGED_BAG(autos);
+  SET_ELM_PLIST(autos, 2, n);
+  SET_LEN_PLIST(autos, 2);
+
+  canon = bliss_digraphs_find_canonical_labeling(
+      graph, digraph_hook_function, autos, 0);
+
+  p   = NEW_PERM4(INT_INTOBJ(n));
+  ptr = ADDR_PERM4(p);
+
+  for (i = 0; i < INT_INTOBJ(n); i++) {
+    ptr[i] = canon[i];
+  }
+  SET_ELM_PLIST(autos, 2, p);
+  CHANGED_BAG(autos);
+
+  bliss_digraphs_release(graph);
+  if (LEN_PLIST(ELM_PLIST(autos, 1)) != 0) {
+    SortDensePlist(ELM_PLIST(autos, 1));
+    RemoveDupsDensePlist(ELM_PLIST(autos, 1));
+  }
+
+  return autos;
+}
+
+static Obj FuncDIGRAPH_WITH_EDGE_COLOURS_AUTOMORPHISMS(Obj self,
+                                                       Obj digraph,
+                                                       Obj vert_colours,
+                                                       Obj edge_colours,
+                                                       Obj orientation_double) {
+  Obj                 autos, p, n;
+  BlissGraph*         graph;
+  UInt4*              ptr;
+  const unsigned int* canon;
+  Int                 i;
+
+  Obj v_col_pass = (vert_colours == False) ? NULL : vert_colours;
+  Obj e_col_pass = (edge_colours == False) ? NULL : edge_colours;
+
+  graph = buildBlissGraphWithVertexEdgeColours(
+      digraph, v_col_pass, e_col_pass, orientation_double);
 
   autos = NEW_PLIST(T_PLIST, 2);
   n     = INTOBJ_INT(DigraphNrVertices(digraph));
@@ -2150,6 +2284,12 @@ static StructGVarFunc GVarFuncs[] = {
      "digraph, colours",
      FuncDIGRAPH_AUTOMORPHISMS,
      "src/digraphs.c:FuncDIGRAPH_AUTOMORPHISMS"},
+    
+    {"DIGRAPH_WITH_EDGE_COLOURS_AUTOMORPHISMS",
+     4,
+     "digraph, vertex_colours, edge_colours, orientation_double",
+     FuncDIGRAPH_WITH_EDGE_COLOURS_AUTOMORPHISMS,
+     "src/digraphs.c:FuncDIGRAPH_WITH_EDGE_COLOURS_AUTOMORPHISMS"},
 
     {"MULTIDIGRAPH_AUTOMORPHISMS",
      2,
