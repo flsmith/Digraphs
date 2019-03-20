@@ -1655,10 +1655,9 @@ BlissGraph* buildBlissDigraphWithColours(Obj digraph, Obj colours) {
 =======
 >>>>>>> fixup
 // TODO: document mult (and everything else)
-BlissGraph* buildBlissDigraphWithColours(Obj digraph,
+BlissGraph* buildBlissDigraph(Obj digraph,
                                          Obj vert_colours,
-                                         Obj edge_colours,
-                                         Obj orientation_double) {
+                                         Obj edge_colours) {
   uint64_t    mult, num_vc, num_ec, n, i, j, k, nr;
   Obj         adjj, adj;
   BlissGraph* graph;
@@ -1667,7 +1666,7 @@ BlissGraph* buildBlissDigraphWithColours(Obj digraph,
   num_vc = 0;
   num_ec = 0;
   
-  // TODO: fix this at the GAP level
+  // TODO: make a decision about this
   // mult = (orientation_double == True) ? 2 : 1;
 
   mult = 2;
@@ -1701,7 +1700,7 @@ BlissGraph* buildBlissDigraphWithColours(Obj digraph,
   uint64_t num_layers = 64 - __builtin_clzll(num_ec);
 
   // Take care of the case where there are no edges in the digraph
-  if (num_ec == 0) {
+  if (DigraphNrEdges(digraph) == 0) {
     num_layers = 1;
     mult = 1;
   }
@@ -1833,16 +1832,14 @@ BlissGraph* buildBlissDigraphWithColours(Obj digraph,
   static Obj FuncDIGRAPH_AUTOMORPHISMS(Obj self,
                                        Obj digraph,
                                        Obj vert_colours,
-                                       Obj edge_colours,
-                                       Obj orientation_double) {
+                                       Obj edge_colours) {
     Obj                 autos, p, n;
     BlissGraph*         graph;
     UInt4*              ptr;
     const unsigned int* canon;
     Int                 i;
 
-    graph = buildBlissDigraphWithColours(
-        digraph, vert_colours, edge_colours, orientation_double);
+    graph = buildBlissDigraph(digraph, vert_colours, edge_colours);
 
     autos = NEW_PLIST(T_PLIST, 2);
     n     = INTOBJ_INT(DigraphNrVertices(digraph));
@@ -2038,9 +2035,9 @@ BlissGraph* buildBlissDigraphWithColours(Obj digraph,
     const unsigned int* canon;
 
     if (colours == Fail) {
-      graph = buildBlissDigraphWithColours(digraph, NULL, NULL, false);
+      graph = buildBlissDigraph(digraph, NULL, NULL);
     } else {
-      graph = buildBlissDigraphWithColours(digraph, colours, NULL, false);
+      graph = buildBlissDigraph(digraph, colours, NULL);
     }
 
     canon = bliss_digraphs_find_canonical_labeling(graph, 0, 0, 0);
@@ -2260,8 +2257,8 @@ BlissGraph* buildBlissDigraphWithColours(Obj digraph,
        "src/digraphs.c:FuncDIGRAPH_PATH"},
 
       {"DIGRAPH_AUTOMORPHISMS",
-       4,
-       "digraph, vertex_colours, edge_colours, orientation_double",
+       3,
+       "digraph, vertex_colours, edge_colours",
        FuncDIGRAPH_AUTOMORPHISMS,
        "src/digraphs.c:FuncDIGRAPH_AUTOMORPHISMS"},
       

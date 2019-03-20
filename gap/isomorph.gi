@@ -41,7 +41,10 @@ function()
     fi;
     Info(InfoWarning,
          1,
-         "Using nauty by default for AutomorphismGroup . . .");
+         "Using NautyTracesInterface by default for AutomorphismGroup");
+    Info(InfoWarning,
+         1,
+         "bliss will for used for edge coloured automorphisms");
   else
     Info(InfoWarning,
          1,
@@ -103,20 +106,9 @@ function(D, vert_colours, edge_colours, calling_function_name)
                                                calling_function_name);
   fi;
 
-  # note that this might change the edge colouring to be valid to feed to the
-  # C function, in particular if there is an edge and reverse edge sharing a
-  # colour or if there are multiple edges with the same source, range, and
-  # colour
-  validated := DIGRAPHS_ValidateEdgeColouring(D,
-                                              vert_colours,
-                                              edge_colours);
-  D := validated[1];
-  orientation_double := validated[2];
+  DIGRAPHS_ValidateEdgeColouring(D, vert_colours, edge_colours);
 
-  data := DIGRAPH_AUTOMORPHISMS(D,
-                                vert_colours,
-                                edge_colours,
-                                orientation_double);
+  data := DIGRAPH_AUTOMORPHISMS(D, vert_colours, edge_colours);
 
   if IsEmpty(data[1]) then
     data[1] := [()];
@@ -300,7 +292,7 @@ function(D, colors)
                     "AutomorphismGroup")[1];
 end);
 
-InstallMethod(BlissEdgeColouredAutomorphismGroup, "for a digraph",
+InstallMethod(BlissAutomorphismGroup, "for a digraph",
 [IsDigraph, IsHomogeneousList, IsList],
 function(digraph, vert_colours, edge_colours)
   return BLISS_DATA(digraph,
@@ -309,9 +301,12 @@ function(digraph, vert_colours, edge_colours)
                     "AutomorphismGroup")[1];
 end);
 
-InstallMethod(BlissEdgeColouredAutomorphismGroup, "for a digraph",
+InstallMethod(BlissAutomorphismGroup, "for a digraph, fail",
 [IsDigraph, IsBool, IsList],
 function(digraph, vert_colours, edge_colours)
+  if not vert_colours = fail then
+    TryNextMethod();
+  fi;
   return BLISS_DATA(digraph,
                     vert_colours,
                     edge_colours,
@@ -329,6 +324,27 @@ function(D, colors)
   return NAUTY_DATA(D, colors)[1];
 end);
 
+InstallMethod(NautyAutomorphismGroup, "for a digraph",
+[IsDigraph, IsHomogeneousList, IsList],
+function(digraph, vert_colours, edge_colours)
+  Info(InfoWarning,
+       1,
+       "NautyAutomorphismGroup is not available for edge coloured digraphs");
+  return fail;
+end);
+
+InstallMethod(NautyAutomorphismGroup, "for a digraph",
+[IsDigraph, IsBool, IsList],
+function(digraph, vert_colours, edge_colours)
+  if not vert_colours = fail then
+    TryNextMethod();
+  fi;
+  Info(InfoWarning,
+       1,
+       "NautyAutomorphismGroup is not available for edge coloured digraphs");
+  return fail;
+end);
+
 InstallMethod(AutomorphismGroup, "for a digraph", [IsDigraph],
 BlissAutomorphismGroup);
 
@@ -336,10 +352,10 @@ InstallMethod(AutomorphismGroup, "for a digraph and vertex coloring",
 [IsDigraph, IsHomogeneousList], BlissAutomorphismGroup);
 
 InstallMethod(AutomorphismGroup, "for a digraph, vertex and edge coloring",
-[IsDigraph, IsHomogeneousList, IsList], BlissEdgeColouredAutomorphismGroup);
+[IsDigraph, IsHomogeneousList, IsList], BlissAutomorphismGroup);
 
 InstallMethod(AutomorphismGroup, "for a digraph, vertex and edge coloring",
-[IsDigraph, IsBool, IsList], BlissEdgeColouredAutomorphismGroup);
+[IsDigraph, IsBool, IsList], BlissAutomorphismGroup);
 
 InstallMethod(AutomorphismGroup, "for a multidigraph", [IsMultiDigraph],
 BlissAutomorphismGroup);
@@ -662,7 +678,12 @@ end);
 
 InstallGlobalFunction(DIGRAPHS_ValidateEdgeColouring,
 function(graph, vert_colouring, edge_colouring)
-  local n, colours, m, adji, orientation_double, adj_colours, i, j, k;
+  local n, colours, m, adji, cols, cur, w, seen_colours, orientation_double,
+  adj_colours, i, j;
+  
+  if not IsDigraph(graph) then
+    ErrorNoReturn("the 1st argument must be a digraph");
+  fi;
   
   # Check: shapes and values from [1 .. something]
   if edge_colouring = fail then
@@ -670,14 +691,10 @@ function(graph, vert_colouring, edge_colouring)
       ErrorNoReturn("multidigraphs with two edges with the same source, ",
                     "range, and colour are not allowed");
     else
-      return [graph,
-              DIGRAPHS_HasSymmetricPair(graph, vert_colouring, fail)];
+      return true;
     fi;
   fi;
 
-  if not IsDigraph(graph) then
-    ErrorNoReturn("the 1st argument must be a digraph");
-  fi;
   n := DigraphNrVertices(graph);
   if not IsList(edge_colouring) or Length(edge_colouring) <> n then
     ErrorNoReturn("the 2nd argument must be a list of the same shape as ",
@@ -707,27 +724,32 @@ function(graph, vert_colouring, edge_colouring)
   fi;
   
   # check that no two edges share source, range, colour
+  
   for i in [1 .. n] do
-    adji := OutNeighbours(graph)[i];
+    adji := ShallowCopy(OutNeighbours(graph)[i]);
+    cols := ShallowCopy(edge_colouring[i]);
+    SortParallel(adji, cols);
+    cur := -1;
     for j in [1 .. Length(adji)] do
-      for k in [j + 1 .. Length(adji)] do
-        if adji[j] = adji[k] and
-            edge_colouring[i][j] = edge_colouring[i][k] then
-          ErrorNoReturn("multidigraphs with two edges with the same source, ",
-                        "range, and colour are not allowed");
-        fi;
-      od;
+      w := adji[j];
+      if w <> cur then
+        seen_colours := BlistList([1 .. m], []);
+        cur := w;
+      fi;
+      if seen_colours[cols[j]] then
+        ErrorNoReturn("multidigraphs with two edges with the same source, ",
+                      "range, and colour are not allowed");
+      fi;
+      seen_colours[cols[j]] := true;
     od;
   od;
-  
-  orientation_double := DIGRAPHS_HasSymmetricPair(graph,
-                                                  vert_colouring,
-                                                  edge_colouring);
-  return [graph, orientation_double];
+
+  return true;
 
   # Are there multiple edges with the same source, range, colour? Fix them.
   # For each colour, count how many different multiplicities of multiple edges
   # occur, then replace these multiple edges with a single edge of a new colour
+  # NOTE: currently we don't bother doing this
 
   # if IsMultiDigraph(graph) then
   #   map := List([1 .. m], x -> []);

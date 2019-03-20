@@ -11,20 +11,20 @@
 
 DeclareAttribute("AutomorphismGroup", IsDigraph);
 DeclareOperation("AutomorphismGroup", [IsDigraph, IsHomogeneousList]);
-DeclareOperation("AutomorphismGroup",
-                 [IsDigraph, IsHomogeneousList, IsList]);
-DeclareOperation("AutomorphismGroup",
-                 [IsDigraph, IsBool, IsList]);
+DeclareOperation("AutomorphismGroup", [IsDigraph, IsHomogeneousList, IsList]);
+DeclareOperation("AutomorphismGroup", [IsDigraph, IsBool, IsList]);
 
 DeclareAttribute("BlissAutomorphismGroup", IsDigraph);
 DeclareOperation("BlissAutomorphismGroup", [IsDigraph, IsHomogeneousList]);
-DeclareOperation("BlissEdgeColouredAutomorphismGroup",
+DeclareOperation("BlissAutomorphismGroup",
                  [IsDigraph, IsHomogeneousList, IsList]);
-DeclareOperation("BlissEdgeColouredAutomorphismGroup",
-                 [IsDigraph, IsBool, IsList]);
+DeclareOperation("BlissAutomorphismGroup", [IsDigraph, IsBool, IsList]);
 
 DeclareAttribute("NautyAutomorphismGroup", IsDigraph);
 DeclareOperation("NautyAutomorphismGroup", [IsDigraph, IsHomogeneousList]);
+DeclareOperation("NautyAutomorphismGroup",
+                 [IsDigraph, IsHomogeneousList, IsList]);
+DeclareOperation("NautyAutomorphismGroup", [IsDigraph, IsBool, IsList]);
 
 DeclareAttribute("BlissCanonicalLabelling", IsDigraph);
 DeclareOperation("BlissCanonicalLabelling", [IsDigraph, IsHomogeneousList]);
