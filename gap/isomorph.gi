@@ -88,7 +88,7 @@ function(D, colors)
 end);
 
 BindGlobal("BLISS_DATA_WITH_EDGE_COLOURS",
-function(digraph, vert_colours, edge_colours, calling_function_name) 
+function(digraph, vert_colours, edge_colours, calling_function_name)
   local orientation_double, validated, data;
   orientation_double := false;
   if vert_colours <> false then
@@ -96,7 +96,7 @@ function(digraph, vert_colours, edge_colours, calling_function_name)
                                                vert_colours,
                                                calling_function_name);
   fi;
- 
+
   if edge_colours <> false then
     # note that this might change the edge colouring to be valid to feed to the
     # C function, in particular if there is an edge and reverse edge sharing a
@@ -108,7 +108,6 @@ function(digraph, vert_colours, edge_colours, calling_function_name)
     edge_colours := validated[2];
     orientation_double := validated[3];
   fi;
-
 
   data := DIGRAPH_WITH_EDGE_COLOURS_AUTOMORPHISMS(digraph,
                                                   vert_colours,
@@ -266,7 +265,6 @@ function(D)
   return data[1];
 end);
 
-
 InstallMethod(NautyAutomorphismGroup, "for a digraph", [IsDigraph],
 function(D)
   local data;
@@ -291,10 +289,9 @@ function(D, colors)
   return BLISS_DATA(D, colors)[1];
 end);
 
-InstallMethod(BlissEdgeColouredAutomorphismGroup, "for a digraph", 
+InstallMethod(BlissEdgeColouredAutomorphismGroup, "for a digraph",
 [IsDigraph, IsHomogeneousList, IsList],
 function(digraph, vert_colours, edge_colours)
-  local data;
   return BLISS_DATA_WITH_EDGE_COLOURS(digraph,
                                       vert_colours,
                                       edge_colours,
@@ -603,17 +600,18 @@ function(graph, edge_colouring)
   local n, colours, m, map, adji, coli, range, colour, mult, new_edge_colouring,
   new_adj_list, count, seen_first, adj_colours, w, orientation_double, i, x,
   edge, j;
-  #check: shapes and values from [1 .. something]
-  
+
+  # Check: shapes and values from [1 .. something]
+
   if not IsDigraph(graph) then
-    ErrorNoReturn("the 1st argument must be a digraph"); 
+    ErrorNoReturn("the 1st argument must be a digraph");
   fi;
   n := DigraphNrVertices(graph);
   if not IsList(edge_colouring) or Length(edge_colouring) <> n then
     ErrorNoReturn("the 2nd argument must be a list of the same shape as",
                   "OutNeighbours(graph), where graph is the 1st argument");
   fi;
-  if ForAny(DigraphVertices(graph), x -> not IsList(edge_colouring[x]) or 
+  if ForAny(DigraphVertices(graph), x -> not IsList(edge_colouring[x]) or
                                          (Length(edge_colouring[x]) <>
                                           Length(OutNeighbours(graph)[x]))) then
     ErrorNoReturn("the 2nd argument must be a list of the same shape as",
@@ -636,7 +634,7 @@ function(graph, edge_colouring)
                    "is [1 .. number of colours]");
   fi;
 
-  #check: are there multiple edges with the same source, range, colour? fix them
+  # Are there multiple edges with the same source, range, colour? Fix them.
   # For each colour, count how many different multiplicities of multiple edges
   # occur, then replace these multiple edges with a single edge of a new colour
 
@@ -655,7 +653,7 @@ function(graph, edge_colouring)
         Add(map[colour][mult], [i, range]);
       od;
     od;
-   
+
     # TODO: what is happening here?
     if ForAny(map, x -> Length(x) <> 1) then
       new_edge_colouring := List([1 .. n], x -> []);
@@ -663,11 +661,11 @@ function(graph, edge_colouring)
       count := m + 1;
       for colour in [1 .. m] do
         seen_first := false;
-        for mult in PositionsBound(map[colour]) do
+        for mult in PositionsProperty(map[colour], x -> IsBound(x)) do
           for edge in map[colour][mult] do
             Add(new_adj_list[edge[1]], edge[2]);
             if seen_first then
-              Add(new_edge_colouring[edge[1]], count); 
+              Add(new_edge_colouring[edge[1]], count);
             else
               Add(new_edge_colouring[edge[1]], colour);
             fi;
@@ -685,31 +683,32 @@ function(graph, edge_colouring)
     new_edge_colouring := edge_colouring;
   fi;
 
-  #check: is there an edge and reverse edge with same colour? then: fix it
-  
-#  map_colour_to_count := List([1 .. n], -1);
-#  bigger_adj_cols := List([1 .. n], List([1 .. n], []));
-#  for i in [1 .. n] do
-#    for j in [1 .. Length(new_adj_list)] do
-#      w := new_adj_list[i][j];
-#      colour := new_edge_colouring[i][j];
-#      if w > i then
-#        bigger_adj_cols[i][w][colour] := j;
-#      elif w < i then
-#        if IsBound(bigger_adj_cols[w][i][colour]) then
-#          if map_colour_to_count[colour] = -1 then
-#            map_colour_to_count[colour] := count;
-#            count := count + 1;
-#          fi; 
-#          new_edge_colouring[i][j] := map_colour_to_count[colour];
-#        fi;
-#      fi;
-#    od;
-#  od;
+  # Is there an edge and reverse edge with same colour?
+  # TODO: this isn't quite what we care about
+
+  #  map_colour_to_count := List([1 .. n], -1);
+  #  bigger_adj_cols := List([1 .. n], List([1 .. n], []));
+  #  for i in [1 .. n] do
+  #    for j in [1 .. Length(new_adj_list)] do
+  #      w := new_adj_list[i][j];
+  #      colour := new_edge_colouring[i][j];
+  #      if w > i then
+  #        bigger_adj_cols[i][w][colour] := j;
+  #      elif w < i then
+  #        if IsBound(bigger_adj_cols[w][i][colour]) then
+  #          if map_colour_to_count[colour] = -1 then
+  #            map_colour_to_count[colour] := count;
+  #            count := count + 1;
+  #          fi;
+  #          new_edge_colouring[i][j] := map_colour_to_count[colour];
+  #        fi;
+  #      fi;
+  #    od;
+  #  od;
 
   # TODO: we can probably improve this by looking at whether these vertices
   # actually can be swapped - if not, don't bother!
-  
+
   adj_colours := List([1 .. n], x -> []);
   for i in [1 .. n] do
     for j in [1 .. Length(new_adj_list[i])] do
@@ -720,15 +719,15 @@ function(graph, edge_colouring)
       AddSet(adj_colours[i][w], new_edge_colouring[i][j]);
     od;
   od;
-  
+
   # TODO: remove intersection here
   orientation_double := ForAny([1 .. n],
-            i -> ForAny(PositionsBound(adj_colours[i]), 
-                                       j -> i <> j
-                                            and IsBound(adj_colours[j][i]) and not 
-                                            IsEmpty(Intersection(adj_colours[i][j],
-                                                                 adj_colours[j][i]))));
-    
+            i -> ForAny(PositionsProperty(adj_colours[i], x -> IsBound(x)),
+                        j -> i <> j and
+                             IsBound(adj_colours[j][i]) and not
+                             IsEmpty(Intersection(adj_colours[i][j],
+                                                  adj_colours[j][i]))));
+
   return [graph, new_edge_colouring, orientation_double];
 end);
 
