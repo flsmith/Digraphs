@@ -48,6 +48,7 @@ BindGlobal("DIGRAPHS_UsingBliss", true);
 
 DeclareGlobalFunction("DIGRAPHS_ValidateVertexColouring");
 DeclareGlobalFunction("DIGRAPHS_ValidateEdgeColouring");
+DeclareGlobalFunction("DIGRAPHS_HasSymmetricPair");
 
 DeclareOperation("IsDigraphAutomorphism", [IsDigraph, IsPerm]);
 DeclareOperation("IsDigraphIsomorphism", [IsDigraph, IsDigraph, IsPerm]);
