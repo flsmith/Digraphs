@@ -1607,6 +1607,7 @@ BlissGraph* buildBlissMultiDigraph(Obj digraph) {
   return graph;
 }
 
+<<<<<<< HEAD
 /*
 BlissGraph* buildBlissDigraphWithColours(Obj digraph, Obj colours) {
   UInt        n, i, j, nr;
@@ -1651,6 +1652,8 @@ BlissGraph* buildBlissDigraphWithColours(Obj digraph, Obj colours) {
 }
 */
 
+=======
+>>>>>>> fixup
 // TODO: document mult (and everything else)
 BlissGraph* buildBlissDigraphWithColours(Obj digraph,
                                          Obj vert_colours,

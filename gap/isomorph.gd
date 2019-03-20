@@ -13,11 +13,15 @@ DeclareAttribute("AutomorphismGroup", IsDigraph);
 DeclareOperation("AutomorphismGroup", [IsDigraph, IsHomogeneousList]);
 DeclareOperation("AutomorphismGroup",
                  [IsDigraph, IsHomogeneousList, IsList]);
+DeclareOperation("AutomorphismGroup",
+                 [IsDigraph, IsBool, IsList]);
 
 DeclareAttribute("BlissAutomorphismGroup", IsDigraph);
 DeclareOperation("BlissAutomorphismGroup", [IsDigraph, IsHomogeneousList]);
 DeclareOperation("BlissEdgeColouredAutomorphismGroup",
                  [IsDigraph, IsHomogeneousList, IsList]);
+DeclareOperation("BlissEdgeColouredAutomorphismGroup",
+                 [IsDigraph, IsBool, IsList]);
 
 DeclareAttribute("NautyAutomorphismGroup", IsDigraph);
 DeclareOperation("NautyAutomorphismGroup", [IsDigraph, IsHomogeneousList]);

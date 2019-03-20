@@ -54,11 +54,6 @@ end);
 
 # Wrappers for the C-level functions
 
-## The argument <colors> should be a coloring of type 1, as described before
-## ValidateVertexColouring in isomorph.gd.
-##
-## Returns a list where the first position is the automorphism group, and the
-## second is the canonical labelling.
 #BindGlobal("BLISS_DATA",
 #function(digraph, colors, calling_function_name)
 #  local data;
@@ -91,6 +86,13 @@ end);
 #  fi;
 #
 
+## The argument <vert_colours> should be a list of colours of the vertices
+## of <digraph>, and the argument <edge_colours> should be a list of
+## lists of the same shape as OutNeighbours(<digraph>).
+## See ValidateVertexColouring and ValidateEdgeColouring.
+##
+## Returns a list where the first position is the automorphism group, and the
+## second is the canonical labelling.
 BindGlobal("BLISS_DATA",
 function(D, vert_colours, edge_colours, calling_function_name)
   local orientation_double, validated, data;
@@ -307,6 +309,15 @@ function(digraph, vert_colours, edge_colours)
                     "AutomorphismGroup")[1];
 end);
 
+InstallMethod(BlissEdgeColouredAutomorphismGroup, "for a digraph",
+[IsDigraph, IsBool, IsList],
+function(digraph, vert_colours, edge_colours)
+  return BLISS_DATA(digraph,
+                    vert_colours,
+                    edge_colours,
+                    "AutomorphismGroup")[1];
+end);
+
 InstallMethod(NautyAutomorphismGroup, "for a digraph and vertex coloring",
 [IsDigraph, IsHomogeneousList],
 function(D, colors)
@@ -326,6 +337,9 @@ InstallMethod(AutomorphismGroup, "for a digraph and vertex coloring",
 
 InstallMethod(AutomorphismGroup, "for a digraph, vertex and edge coloring",
 [IsDigraph, IsHomogeneousList, IsList], BlissEdgeColouredAutomorphismGroup);
+
+InstallMethod(AutomorphismGroup, "for a digraph, vertex and edge coloring",
+[IsDigraph, IsBool, IsList], BlissEdgeColouredAutomorphismGroup);
 
 InstallMethod(AutomorphismGroup, "for a multidigraph", [IsMultiDigraph],
 BlissAutomorphismGroup);
