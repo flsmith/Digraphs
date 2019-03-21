@@ -57,37 +57,39 @@ end);
 
 # Wrappers for the C-level functions
 
-#BindGlobal("BLISS_DATA",
-#function(digraph, colors, calling_function_name)
-#  local data;
-#  if colors <> false then
-#    colors := DIGRAPHS_ValidateVertexColouring(DigraphNrVertices(digraph),
-#                                               colors,
-#                                               calling_function_name);
-#  fi;
-#  if IsMultiDigraph(digraph) then
-#    data := MULTIDIGRAPH_AUTOMORPHISMS(digraph, colors);
-#    if IsEmpty(data[1]) then
-#      data[1] := [()];
-#    fi;
-#    # Note that data[3] cannot ever be empty since there are multiple edges,
-#    # and since they are indistinguishable, they can be swapped by an
-#    # automorphism.
-#    data[1] := DirectProduct(Group(data[1]), Group(data[3]));
-#    return data;
-#  else
-#    data := DIGRAPH_AUTOMORPHISMS(digraph,
-#                                  colors,
-#                                  fail,
-#                                  DIGRAPHS_HasSymmetricPair(digraph,
-#                                                            colors,
-#                                                            fail));
-#    if IsEmpty(data[1]) then
-#      data[1] := [()];
-#    fi;
-#    data[1] := Group(data[1]);
-#  fi;
+# BindGlobal("BLISS_DATA",
+# function(digraph, colors, calling_function_name)
+#   local data;
+#   if colors <> false then
+#     colors := DIGRAPHS_ValidateVertexColouring(DigraphNrVertices(digraph),
+#                                                colors,
+#                                                calling_function_name);
+#   fi;
+#   if IsMultiDigraph(digraph) then
+#     data := MULTIDIGRAPH_AUTOMORPHISMS(digraph, colors);
+#     if IsEmpty(data[1]) then
+#       data[1] := [()];
+#     fi;
+#     # Note that data[3] cannot ever be empty since there are multiple edges,
+#     # and since they are indistinguishable, they can be swapped by an
+#     # automorphism.
+#     data[1] := DirectProduct(Group(data[1]), Group(data[3]));
+#     return data;
+#   else
+#     data := DIGRAPH_AUTOMORPHISMS(digraph,
+#                                   colors,
+#                                   fail,
+#                                   DIGRAPHS_HasSymmetricPair(digraph,
+#                                                             colors,
+#                                                             fail));
+#     if IsEmpty(data[1]) then
+#       data[1] := [()];
+#     fi;
+#     data[1] := Group(data[1]);
+#   fi;
 #
+#   return data;
+# end);
 
 ## The argument <vert_colours> should be a list of colours of the vertices
 ## of <digraph>, and the argument <edge_colours> should be a list of
@@ -98,7 +100,7 @@ end);
 ## second is the canonical labelling.
 BindGlobal("BLISS_DATA",
 function(D, vert_colours, edge_colours, calling_function_name)
-  local orientation_double, validated, data;
+  local data;
   orientation_double := false;
   if vert_colours <> fail then
     vert_colours := DIGRAPHS_ValidateVertexColouring(DigraphNrVertices(D),
@@ -637,7 +639,7 @@ end);
 InstallGlobalFunction(DIGRAPHS_HasSymmetricPair,
 function(graph, vertex_colouring, edge_colouring)
   local n, collected, j, adj, adj_colours, i, edge_mult;
-  
+
   n := DigraphNrVertices(graph);
   if edge_colouring = fail then
     collected := [];
@@ -647,7 +649,7 @@ function(graph, vertex_colouring, edge_colouring)
         j := edge_mult[1];
         if j < i then
           if vertex_colouring <> fail and
-             vertex_colouring[i] <> vertex_colouring[j] then 
+              vertex_colouring[i] <> vertex_colouring[j] then
             continue;
           fi;
           if [i, edge_mult[2]] in collected[j] then
@@ -662,29 +664,27 @@ function(graph, vertex_colouring, edge_colouring)
   # TODO: this does not check if the colours on the vertices are different
 
   adj := OutNeighbours(graph);
-  adj_colours := List([1 .. n], 
+  adj_colours := List([1 .. n],
                       x -> List([1 .. n],
                                 y -> edge_colouring[x]{Positions(adj[x], y)}));
 
   # TODO: document this properly
   return ForAny([1 .. n],
-                i -> ForAny(PositionsProperty(adj_colours[i], 
-                                              x-> not IsEmpty(x)),
+                i -> ForAny(PositionsProperty(adj_colours[i],
+                                              x -> not IsEmpty(x)),
                             j -> i <> j and
                                   adj_colours[i][j] <> adj_colours[j][i]));
-
-
 end);
 
 InstallGlobalFunction(DIGRAPHS_ValidateEdgeColouring,
 function(graph, vert_colouring, edge_colouring)
-  local n, colours, m, adji, cols, cur, w, seen_colours, orientation_double,
+  local n, colours, m, adji, cols, cur, w, seen_colours,
   adj_colours, i, j;
-  
+
   if not IsDigraph(graph) then
     ErrorNoReturn("the 1st argument must be a digraph");
   fi;
-  
+
   # Check: shapes and values from [1 .. something]
   if edge_colouring = fail then
     if IsMultiDigraph(graph) then
@@ -722,9 +722,9 @@ function(graph, vert_colouring, edge_colouring)
     ErrorNoReturn("the 2nd argument should be a list of lists whose union ",
                    "is [1 .. number of colours]");
   fi;
-  
+
   # check that no two edges share source, range, colour
-  
+
   for i in [1 .. n] do
     adji := ShallowCopy(OutNeighbours(graph)[i]);
     cols := ShallowCopy(edge_colouring[i]);
