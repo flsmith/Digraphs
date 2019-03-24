@@ -14,9 +14,8 @@
 
 #include "digraphs.h"
 
-#include <stdio.h>
-#include <stdint.h>   // for uint64_t
 #include <stdbool.h>  // for false, true, bool
+#include <stdint.h>   // for uint64_t
 #include <stdlib.h>   // for NULL, free
 
 #include "bliss-0.73/bliss_C.h"  // for bliss_digraphs_release, . . .
@@ -1655,17 +1654,15 @@ BlissGraph* buildBlissDigraphWithColours(Obj digraph, Obj colours) {
 =======
 >>>>>>> fixup
 // TODO: document mult (and everything else)
-BlissGraph* buildBlissDigraph(Obj digraph,
-                                         Obj vert_colours,
-                                         Obj edge_colours) {
-  uint64_t    mult, num_vc, num_ec, n, i, j, k, nr;
+BlissGraph* buildBlissDigraph(Obj digraph, Obj vert_colours, Obj edge_colours) {
+  uint64_t    colour, mult, num_vc, num_ec, n, i, j, k, nr;
   Obj         adjj, adj;
   BlissGraph* graph;
 
   n      = DigraphNrVertices(digraph);
   num_vc = 0;
   num_ec = 0;
-  
+
   // TODO: make a decision about this
   // mult = (orientation_double == True) ? 2 : 1;
 
@@ -1674,12 +1671,12 @@ BlissGraph* buildBlissDigraph(Obj digraph,
   if (vert_colours != Fail) {
     DIGRAPHS_ASSERT(n == (uint64_t) LEN_LIST(vert_colours));
     for (i = 1; i <= n; i++) {
-      num_vc = MAX(num_vc,  (uint64_t) INT_INTOBJ(ELM_LIST(vert_colours, i)));
+      num_vc = MAX(num_vc, (uint64_t) INT_INTOBJ(ELM_LIST(vert_colours, i)));
     }
   }
 
   adj = OutNeighbours(digraph);
-  
+
   if (edge_colours != Fail) {
     DIGRAPHS_ASSERT(n == (uint64_t) LEN_LIST(edge_colours));
     for (i = 1; i <= n; i++) {
@@ -1687,7 +1684,7 @@ BlissGraph* buildBlissDigraph(Obj digraph,
       DIGRAPHS_ASSERT(LEN_LIST(ELM_PLIST(adj, i)) == len);
       for (Int l = 1; l <= len; l++) {
         uint64_t x = INT_INTOBJ(ELM_LIST(ELM_LIST(edge_colours, i), l));
-        num_ec = MAX(num_ec, x); 
+        num_ec     = MAX(num_ec, x);
       }
     }
   } else if (DigraphNrEdges(digraph) > 0) {
@@ -1702,36 +1699,29 @@ BlissGraph* buildBlissDigraph(Obj digraph,
   // Take care of the case where there are no edges in the digraph
   if (DigraphNrEdges(digraph) == 0) {
     num_layers = 1;
-    mult = 1;
+    mult       = 1;
+  }
+
+  if (vert_colours == Fail) {
+    num_vc = 1;
   }
 
   // TODO: is duplicating the best idea here?
-  if (vert_colours != Fail) {
-    for (i = 1; i <= mult * num_layers; i += mult) {
+  for (i = 1; i <= mult * num_layers; i += mult) {
+    for (j = 1; j <= n; j++) {
+      colour = (vert_colours != Fail)
+                   ? (i - 1) * num_vc + INT_INTOBJ(ELM_LIST(vert_colours, j))
+                   : i - 1;
+      bliss_digraphs_add_vertex(graph, colour);
+    }
+    if (mult == 2) {
       for (j = 1; j <= n; j++) {
-        bliss_digraphs_add_vertex(
-            graph, (i - 1) * num_vc + INT_INTOBJ(ELM_LIST(vert_colours, j)));
-      }
-      if (mult == 2) {
-        for (j = 1; j <= n; j++) {
-          bliss_digraphs_add_vertex(
-              graph, i * num_vc + INT_INTOBJ(ELM_LIST(vert_colours, j)));
-        }
+        colour = (vert_colours != Fail)
+                     ? i * num_vc + INT_INTOBJ(ELM_LIST(vert_colours, j))
+                     : i;
+        bliss_digraphs_add_vertex(graph, colour);
       }
     }
-  } else {
-    for (i = 1; i <= mult * num_layers; i += mult) {
-      for (j = 1; j <= n; j++) {
-        bliss_digraphs_add_vertex(graph, (i - 1));
-      }
-      if (mult == 2) {
-        for (j = 1; j <= n; j++) {
-          bliss_digraphs_add_vertex(graph, i);
-        }
-      }
-    }
-    // in case num_vc is 0 when we come to add the next set of vertices
-    num_vc = 1;
   }
 
   if (mult == 2) {
@@ -1739,6 +1729,10 @@ BlissGraph* buildBlissDigraph(Obj digraph,
       j = bliss_digraphs_add_vertex(graph, num_vc * num_layers * mult + 2);
       bliss_digraphs_add_edge(graph, j, i);
       bliss_digraphs_add_edge(graph, j, i + n);
+      for (k = 0; k < num_layers; k++) {
+        bliss_digraphs_add_edge(graph, j, i + k * mult * n);
+        bliss_digraphs_add_edge(graph, j, i + (k * mult + 1) * n);
+      }
     }
   }
 
@@ -1760,513 +1754,512 @@ BlissGraph* buildBlissDigraph(Obj digraph,
                 ? INT_INTOBJ(ELM_LIST(ELM_LIST(edge_colours, j), k))
                 : 1;
         if ((1 << i) & colour) {
-            bliss_digraphs_add_edge(graph,
-                                    i * mult * n + (j - 1),
-                                    ((i + 1) * mult - 1) * n  + (w - 1));
-          }
+          bliss_digraphs_add_edge(graph,
+                                  i * mult * n + (j - 1),
+                                  ((i + 1) * mult - 1) * n + (w - 1));
         }
       }
     }
-    //bliss_digraphs_write_dot(graph, stdout);
-    return graph;
+  }
+  return graph;
+}
+
+BlissGraph* buildBlissMultiDigraphWithColours(Obj digraph, Obj colours) {
+  UInt        n, i, j, k, l, nr;
+  Obj         adji, adj;
+  BlissGraph* graph;
+
+  n = DigraphNrVertices(digraph);
+  DIGRAPHS_ASSERT(n == (UInt) LEN_LIST(colours));
+  graph = bliss_digraphs_new(0);
+  adj   = OutNeighbours(digraph);
+
+  for (i = 1; i <= n; i++) {
+    bliss_digraphs_add_vertex(graph, INT_INTOBJ(ELM_LIST(colours, i)));
+  }
+  for (i = 1; i <= n; i++) {
+    bliss_digraphs_add_vertex(graph, n + 1);
+  }
+  for (i = 1; i <= n; i++) {
+    bliss_digraphs_add_vertex(graph, n + 2);
   }
 
-  BlissGraph* buildBlissMultiDigraphWithColours(Obj digraph, Obj colours) {
-    UInt        n, i, j, k, l, nr;
-    Obj         adji, adj;
-    BlissGraph* graph;
-
-    n = DigraphNrVertices(digraph);
-    DIGRAPHS_ASSERT(n == (UInt) LEN_LIST(colours));
-    graph = bliss_digraphs_new(0);
-    adj   = OutNeighbours(digraph);
-
-    for (i = 1; i <= n; i++) {
-      bliss_digraphs_add_vertex(graph, INT_INTOBJ(ELM_LIST(colours, i)));
+  for (i = 1; i <= n; i++) {
+    bliss_digraphs_add_edge(graph, i - 1, n + i - 1);
+    bliss_digraphs_add_edge(graph, i - 1, 2 * n + i - 1);
+    adji = ELM_PLIST(adj, i);
+    nr   = LEN_PLIST(adji);
+    for (j = 1; j <= nr; j++) {
+      k = bliss_digraphs_add_vertex(graph, n + 3);
+      l = bliss_digraphs_add_vertex(graph, n + 4);
+      bliss_digraphs_add_edge(graph, n + i - 1, k);
+      bliss_digraphs_add_edge(graph, k, l);
+      bliss_digraphs_add_edge(
+          graph, l, 2 * n + INT_INTOBJ(ELM_PLIST(adji, j)) - 1);
     }
-    for (i = 1; i <= n; i++) {
-      bliss_digraphs_add_vertex(graph, n + 1);
-    }
-    for (i = 1; i <= n; i++) {
-      bliss_digraphs_add_vertex(graph, n + 2);
-    }
-
-    for (i = 1; i <= n; i++) {
-      bliss_digraphs_add_edge(graph, i - 1, n + i - 1);
-      bliss_digraphs_add_edge(graph, i - 1, 2 * n + i - 1);
-      adji = ELM_PLIST(adj, i);
-      nr   = LEN_PLIST(adji);
-      for (j = 1; j <= nr; j++) {
-        k = bliss_digraphs_add_vertex(graph, n + 3);
-        l = bliss_digraphs_add_vertex(graph, n + 4);
-        bliss_digraphs_add_edge(graph, n + i - 1, k);
-        bliss_digraphs_add_edge(graph, k, l);
-        bliss_digraphs_add_edge(
-            graph, l, 2 * n + INT_INTOBJ(ELM_PLIST(adji, j)) - 1);
-      }
-    }
-
-    return graph;
   }
 
-  void digraph_hook_function(void*               user_param,
-                             unsigned int        N,
-                             const unsigned int* aut) {
-    UInt4* ptr;
-    Obj    p, gens;
-    UInt   i, n;
+  return graph;
+}
 
-    n = INT_INTOBJ(ELM_PLIST(user_param, 2));  // the degree
-    DIGRAPHS_ASSERT(n <= N);
+void digraph_hook_function(void*               user_param,
+                           unsigned int        N,
+                           const unsigned int* aut) {
+  UInt4* ptr;
+  Obj    p, gens;
+  UInt   i, n;
+
+  n = INT_INTOBJ(ELM_PLIST(user_param, 2));  // the degree
+  DIGRAPHS_ASSERT(n <= N);
+  p   = NEW_PERM4(n);
+  ptr = ADDR_PERM4(p);
+
+  for (i = 0; i < n; i++) {
+    ptr[i] = aut[i];
+  }
+
+  gens = ELM_PLIST(user_param, 1);
+  AssPlist(gens, LEN_PLIST(gens) + 1, p);
+}
+
+static Obj FuncDIGRAPH_AUTOMORPHISMS(Obj self,
+                                     Obj digraph,
+                                     Obj vert_colours,
+                                     Obj edge_colours) {
+  Obj                 autos, p, n;
+  BlissGraph*         graph;
+  UInt4*              ptr;
+  const unsigned int* canon;
+  Int                 i;
+
+  graph = buildBlissDigraph(digraph, vert_colours, edge_colours);
+
+  autos = NEW_PLIST(T_PLIST, 2);
+  n     = INTOBJ_INT(DigraphNrVertices(digraph));
+
+  SET_ELM_PLIST(autos, 1, NEW_PLIST(T_PLIST, 0));  // perms of the vertices
+  CHANGED_BAG(autos);
+  SET_ELM_PLIST(autos, 2, n);
+  SET_LEN_PLIST(autos, 2);
+
+  canon = bliss_digraphs_find_canonical_labeling(
+      graph, digraph_hook_function, autos, 0);
+
+  p   = NEW_PERM4(INT_INTOBJ(n));
+  ptr = ADDR_PERM4(p);
+
+  for (i = 0; i < INT_INTOBJ(n); i++) {
+    ptr[i] = canon[i];
+  }
+  SET_ELM_PLIST(autos, 2, p);
+  CHANGED_BAG(autos);
+
+  bliss_digraphs_release(graph);
+  if (LEN_PLIST(ELM_PLIST(autos, 1)) != 0) {
+    SortDensePlist(ELM_PLIST(autos, 1));
+    RemoveDupsDensePlist(ELM_PLIST(autos, 1));
+  }
+
+  return autos;
+}
+
+// user_param = [vertex perms, nr vertices, edge perms, nr edges]
+void multidigraph_hook_function(void*               user_param,
+                                unsigned int        N,
+                                const unsigned int* aut) {
+  UInt4* ptr;
+  Obj    p, gens;
+  UInt   i, n, m;
+  bool   stab;
+
+  m = INT_INTOBJ(ELM_PLIST(user_param, 2));  // the nr of vertices
+  DIGRAPHS_ASSERT(m <= N);
+
+  stab = true;
+  for (i = 0; i < m; i++) {
+    if (aut[i] != i) {
+      stab = false;
+    }
+  }
+  if (stab) {                                    // permutation of the edges
+    n   = INT_INTOBJ(ELM_PLIST(user_param, 4));  // the nr of edges
     p   = NEW_PERM4(n);
     ptr = ADDR_PERM4(p);
-
+    DIGRAPHS_ASSERT(2 * (n - 1) + m <= N);
     for (i = 0; i < n; i++) {
+      ptr[i] = (aut[2 * i + m] - m) / 2;
+    }
+    gens = ELM_PLIST(user_param, 3);
+  } else {  // permutation of the vertices
+    p   = NEW_PERM4(m);
+    ptr = ADDR_PERM4(p);
+    DIGRAPHS_ASSERT(m <= N);
+    for (i = 0; i < m; i++) {
       ptr[i] = aut[i];
     }
-
     gens = ELM_PLIST(user_param, 1);
-    AssPlist(gens, LEN_PLIST(gens) + 1, p);
   }
 
-  static Obj FuncDIGRAPH_AUTOMORPHISMS(Obj self,
-                                       Obj digraph,
-                                       Obj vert_colours,
-                                       Obj edge_colours) {
-    Obj                 autos, p, n;
-    BlissGraph*         graph;
-    UInt4*              ptr;
-    const unsigned int* canon;
-    Int                 i;
+  AssPlist(gens, LEN_PLIST(gens) + 1, p);
+}
 
-    graph = buildBlissDigraph(digraph, vert_colours, edge_colours);
+// user_param = [vertex perms, nr vertices, edge perms, nr edges]
+void multidigraph_colours_hook_function(void*               user_param,
+                                        unsigned int        N,
+                                        const unsigned int* aut) {
+  UInt4* ptr;
+  Obj    p, gens;
+  UInt   i, n, m;
+  bool   stab;
 
-    autos = NEW_PLIST(T_PLIST, 2);
-    n     = INTOBJ_INT(DigraphNrVertices(digraph));
+  m = INT_INTOBJ(ELM_PLIST(user_param, 2));  // the nr of vertices
+  DIGRAPHS_ASSERT(m <= N);
 
-    SET_ELM_PLIST(autos, 1, NEW_PLIST(T_PLIST, 0));  // perms of the vertices
-    CHANGED_BAG(autos);
-    SET_ELM_PLIST(autos, 2, n);
-    SET_LEN_PLIST(autos, 2);
-
-    canon = bliss_digraphs_find_canonical_labeling(
-        graph, digraph_hook_function, autos, 0);
-
-    p   = NEW_PERM4(INT_INTOBJ(n));
-    ptr = ADDR_PERM4(p);
-
-    for (i = 0; i < INT_INTOBJ(n); i++) {
-      ptr[i] = canon[i];
+  stab = true;
+  for (i = 0; i < m; i++) {
+    if (aut[i] != i) {
+      stab = false;
     }
-    SET_ELM_PLIST(autos, 2, p);
-    CHANGED_BAG(autos);
-
-    bliss_digraphs_release(graph);
-    if (LEN_PLIST(ELM_PLIST(autos, 1)) != 0) {
-      SortDensePlist(ELM_PLIST(autos, 1));
-      RemoveDupsDensePlist(ELM_PLIST(autos, 1));
-    }
-
-    return autos;
   }
-
-  // user_param = [vertex perms, nr vertices, edge perms, nr edges]
-  void multidigraph_hook_function(void*               user_param,
-                                  unsigned int        N,
-                                  const unsigned int* aut) {
-    UInt4* ptr;
-    Obj    p, gens;
-    UInt   i, n, m;
-    bool   stab;
-
-    m = INT_INTOBJ(ELM_PLIST(user_param, 2));  // the nr of vertices
-    DIGRAPHS_ASSERT(m <= N);
-
-    stab = true;
-    for (i = 0; i < m; i++) {
-      if (aut[i] != i) {
-        stab = false;
-      }
-    }
-    if (stab) {                                    // permutation of the edges
-      n   = INT_INTOBJ(ELM_PLIST(user_param, 4));  // the nr of edges
-      p   = NEW_PERM4(n);
-      ptr = ADDR_PERM4(p);
-      DIGRAPHS_ASSERT(2 * (n - 1) + m <= N);
-      for (i = 0; i < n; i++) {
-        ptr[i] = (aut[2 * i + m] - m) / 2;
-      }
-      gens = ELM_PLIST(user_param, 3);
-    } else {  // permutation of the vertices
-      p   = NEW_PERM4(m);
-      ptr = ADDR_PERM4(p);
-      DIGRAPHS_ASSERT(m <= N);
-      for (i = 0; i < m; i++) {
-        ptr[i] = aut[i];
-      }
-      gens = ELM_PLIST(user_param, 1);
-    }
-
-    AssPlist(gens, LEN_PLIST(gens) + 1, p);
-  }
-
-  // user_param = [vertex perms, nr vertices, edge perms, nr edges]
-  void multidigraph_colours_hook_function(void*               user_param,
-                                          unsigned int        N,
-                                          const unsigned int* aut) {
-    UInt4* ptr;
-    Obj    p, gens;
-    UInt   i, n, m;
-    bool   stab;
-
-    m = INT_INTOBJ(ELM_PLIST(user_param, 2));  // the nr of vertices
-    DIGRAPHS_ASSERT(m <= N);
-
-    stab = true;
-    for (i = 0; i < m; i++) {
-      if (aut[i] != i) {
-        stab = false;
-      }
-    }
-    if (stab) {                                    // permutation of the edges
-      n   = INT_INTOBJ(ELM_PLIST(user_param, 4));  // the nr of edges
-      p   = NEW_PERM4(n);
-      ptr = ADDR_PERM4(p);
-      DIGRAPHS_ASSERT(2 * (n - 1) + 3 * m <= N);
-      for (i = 0; i < n; i++) {
-        ptr[i] = (aut[2 * i + 3 * m] - 3 * m) / 2;
-      }
-      gens = ELM_PLIST(user_param, 3);
-    } else {  // permutation of the vertices
-      p   = NEW_PERM4(m);
-      ptr = ADDR_PERM4(p);
-      DIGRAPHS_ASSERT(m < N);
-      for (i = 0; i < m; i++) {
-        ptr[i] = aut[i];
-      }
-      gens = ELM_PLIST(user_param, 1);
-    }
-
-    AssPlist(gens, LEN_PLIST(gens) + 1, p);
-  }
-
-  static Obj FuncMULTIDIGRAPH_AUTOMORPHISMS(Obj self, Obj digraph, Obj colours) {
-    Obj                 autos, p, q, out;
-    BlissGraph*         graph;
-    UInt4*              ptr;
-    const unsigned int* canon;
-    Int                 i, m, n;
-
-    if (colours == False) {
-      graph = buildBlissMultiDigraph(digraph);
-    } else {
-      graph = buildBlissMultiDigraphWithColours(digraph, colours);
-    }
-    autos = NEW_PLIST(T_PLIST, 4);
-    SET_ELM_PLIST(autos, 1, NEW_PLIST(T_PLIST, 0));  // perms of the vertices
-    CHANGED_BAG(autos);
-    SET_ELM_PLIST(autos, 2, INTOBJ_INT(DigraphNrVertices(digraph)));
-    SET_ELM_PLIST(autos, 3, NEW_PLIST(T_PLIST, 0));  // perms of the edges
-    CHANGED_BAG(autos);
-    SET_ELM_PLIST(autos, 4, INTOBJ_INT(DigraphNrEdges(digraph)));
-
-    if (colours == False) {
-      canon = bliss_digraphs_find_canonical_labeling(
-          graph, multidigraph_hook_function, autos, 0);
-    } else {
-      canon = bliss_digraphs_find_canonical_labeling(
-          graph, multidigraph_colours_hook_function, autos, 0);
-    }
-
-    // Get canonical labeling as GAP perms
-    m   = DigraphNrVertices(digraph);
-    p   = NEW_PERM4(m);  // perm of vertices
-    ptr = ADDR_PERM4(p);
-
-    for (i = 0; i < m; i++) {
-      ptr[i] = canon[i];
-    }
-
-    n   = DigraphNrEdges(digraph);
-    q   = NEW_PERM4(n);  // perm of edges
-    ptr = ADDR_PERM4(q);
-
-    if (colours == False) {
-      for (i = 0; i < n; i++) {
-        ptr[i] = canon[2 * i + m] - m;
-      }
-    } else {
-      for (i = 0; i < n; i++) {
-        ptr[i] = canon[2 * i + 3 * m] - 3 * m;
-      }
-    }
-
-    bliss_digraphs_release(graph);
-
-    // put the canonical labeling (as a list of two perms) into autos[2]
-    out = NEW_PLIST(T_PLIST, 2);
-    SET_ELM_PLIST(out, 1, p);
-    SET_ELM_PLIST(out, 2, q);
-    SET_LEN_PLIST(out, 2);
-    CHANGED_BAG(out);
-
-    SET_ELM_PLIST(autos, 2, out);
-    CHANGED_BAG(autos);
-
-    // remove 4th entry of autos (the number of edges) . . .
-    SET_LEN_PLIST(autos, 3);
-
-    if (LEN_PLIST(ELM_PLIST(autos, 1)) != 0) {
-      SortDensePlist(ELM_PLIST(autos, 1));
-      RemoveDupsDensePlist(ELM_PLIST(autos, 1));
-    }
-    if (LEN_PLIST(ELM_PLIST(autos, 3)) != 0) {
-      SortDensePlist(ELM_PLIST(autos, 3));
-      RemoveDupsDensePlist(ELM_PLIST(autos, 3));
-    }
-    return autos;
-  }
-
-  static Obj FuncDIGRAPH_CANONICAL_LABELLING(Obj self, Obj digraph, Obj colours) {
-    Obj                 p;
-    UInt4*              ptr;
-    BlissGraph*         graph;
-    Int                 n, i;
-    const unsigned int* canon;
-
-    if (colours == Fail) {
-      graph = buildBlissDigraph(digraph, NULL, NULL);
-    } else {
-      graph = buildBlissDigraph(digraph, colours, NULL);
-    }
-
-    canon = bliss_digraphs_find_canonical_labeling(graph, 0, 0, 0);
-
-    n   = DigraphNrVertices(digraph);
+  if (stab) {                                    // permutation of the edges
+    n   = INT_INTOBJ(ELM_PLIST(user_param, 4));  // the nr of edges
     p   = NEW_PERM4(n);
     ptr = ADDR_PERM4(p);
-
+    DIGRAPHS_ASSERT(2 * (n - 1) + 3 * m <= N);
     for (i = 0; i < n; i++) {
-      ptr[i] = canon[i];
+      ptr[i] = (aut[2 * i + 3 * m] - 3 * m) / 2;
     }
-    bliss_digraphs_release(graph);
-
-    return p;
-  }
-
-  static Obj
-  FuncMULTIDIGRAPH_CANONICAL_LABELLING(Obj self, Obj digraph, Obj colours) {
-    Obj                 p, q, out;
-    UInt4*              ptr;
-    BlissGraph*         graph;
-    Int                 m, n, i;
-    const unsigned int* canon;
-
-    if (colours == Fail) {
-      graph = buildBlissMultiDigraph(digraph);
-    } else {
-      graph = buildBlissMultiDigraphWithColours(digraph, colours);
-    }
-
-    canon = bliss_digraphs_find_canonical_labeling(graph, 0, 0, 0);
-
-    m   = DigraphNrVertices(digraph);
-    p   = NEW_PERM4(m);  // perm of vertices
+    gens = ELM_PLIST(user_param, 3);
+  } else {  // permutation of the vertices
+    p   = NEW_PERM4(m);
     ptr = ADDR_PERM4(p);
-
+    DIGRAPHS_ASSERT(m < N);
     for (i = 0; i < m; i++) {
-      ptr[i] = canon[i];
+      ptr[i] = aut[i];
     }
-
-    n   = DigraphNrEdges(digraph);
-    q   = NEW_PERM4(n);  // perm of edges
-    ptr = ADDR_PERM4(q);
-
-    if (colours == Fail) {
-      for (i = 0; i < n; i++) {
-        ptr[i] = canon[2 * i + m] - m;
-      }
-    } else {
-      for (i = 0; i < n; i++) {
-        ptr[i] = canon[2 * i + 3 * m] - 3 * m;
-      }
-    }
-
-    bliss_digraphs_release(graph);
-
-    out = NEW_PLIST(T_PLIST, 2);
-    SET_ELM_PLIST(out, 1, p);
-    SET_ELM_PLIST(out, 2, q);
-    SET_LEN_PLIST(out, 2);
-    CHANGED_BAG(out);
-
-    return out;
+    gens = ELM_PLIST(user_param, 1);
   }
 
-  /*F * * * * * * * * * * * * * initialize package * * * * * * * * * * * * * * */
+  AssPlist(gens, LEN_PLIST(gens) + 1, p);
+}
 
-  /******************************************************************************
-   *V  GVarFuncs . . . . . . . . . . . . . . . . . . list of functions to export
-   */
+static Obj FuncMULTIDIGRAPH_AUTOMORPHISMS(Obj self, Obj digraph, Obj colours) {
+  Obj                 autos, p, q, out;
+  BlissGraph*         graph;
+  UInt4*              ptr;
+  const unsigned int* canon;
+  Int                 i, m, n;
 
-  static StructGVarFunc GVarFuncs[] = {
-      {"DIGRAPH_NREDGES",
-       1,
-       "digraph",
-       FuncDIGRAPH_NREDGES,
-       "src/digraphs.c:DIGRAPH_NREDGES"},
+  if (colours == False) {
+    graph = buildBlissMultiDigraph(digraph);
+  } else {
+    graph = buildBlissMultiDigraphWithColours(digraph, colours);
+  }
+  autos = NEW_PLIST(T_PLIST, 4);
+  SET_ELM_PLIST(autos, 1, NEW_PLIST(T_PLIST, 0));  // perms of the vertices
+  CHANGED_BAG(autos);
+  SET_ELM_PLIST(autos, 2, INTOBJ_INT(DigraphNrVertices(digraph)));
+  SET_ELM_PLIST(autos, 3, NEW_PLIST(T_PLIST, 0));  // perms of the edges
+  CHANGED_BAG(autos);
+  SET_ELM_PLIST(autos, 4, INTOBJ_INT(DigraphNrEdges(digraph)));
 
-      {"GABOW_SCC", 1, "adj", FuncGABOW_SCC, "src/digraphs.c:GABOW_SCC"},
+  if (colours == False) {
+    canon = bliss_digraphs_find_canonical_labeling(
+        graph, multidigraph_hook_function, autos, 0);
+  } else {
+    canon = bliss_digraphs_find_canonical_labeling(
+        graph, multidigraph_colours_hook_function, autos, 0);
+  }
 
-      {"DIGRAPH_CONNECTED_COMPONENTS",
-       1,
-       "digraph",
-       FuncDIGRAPH_CONNECTED_COMPONENTS,
-       "src/digraphs.c:DIGRAPH_CONNECTED_COMPONENTS"},
+  // Get canonical labeling as GAP perms
+  m   = DigraphNrVertices(digraph);
+  p   = NEW_PERM4(m);  // perm of vertices
+  ptr = ADDR_PERM4(p);
 
-      {"IS_ACYCLIC_DIGRAPH",
-       1,
-       "adj",
-       FuncIS_ACYCLIC_DIGRAPH,
-       "src/digraphs.c:FuncIS_ACYCLIC_DIGRAPH"},
+  for (i = 0; i < m; i++) {
+    ptr[i] = canon[i];
+  }
 
-      {"DIGRAPH_LONGEST_DIST_VERTEX",
-       2,
-       "adj, start",
-       FuncDIGRAPH_LONGEST_DIST_VERTEX,
-       "src/digraphs.c:FuncDIGRAPH_LONGEST_DIST_VERTEX"},
+  n   = DigraphNrEdges(digraph);
+  q   = NEW_PERM4(n);  // perm of edges
+  ptr = ADDR_PERM4(q);
 
-      {"DIGRAPH_TRANS_REDUCTION",
-       2,
-       "adj, loops",
-       FuncDIGRAPH_TRANS_REDUCTION,
-       "src/digraphs.c:FuncDIGRAPH_TRANS_REDUCTION"},
+  if (colours == False) {
+    for (i = 0; i < n; i++) {
+      ptr[i] = canon[2 * i + m] - m;
+    }
+  } else {
+    for (i = 0; i < n; i++) {
+      ptr[i] = canon[2 * i + 3 * m] - 3 * m;
+    }
+  }
 
-      {"IS_ANTISYMMETRIC_DIGRAPH",
-       1,
-       "adj",
-       FuncIS_ANTISYMMETRIC_DIGRAPH,
-       "src/digraphs.c:FuncIS_ANTISYMMETRIC_DIGRAPH"},
+  bliss_digraphs_release(graph);
 
-      {"IS_STRONGLY_CONNECTED_DIGRAPH",
-       1,
-       "adj",
-       FuncIS_STRONGLY_CONNECTED_DIGRAPH,
-       "src/digraphs.c:FuncIS_STRONGLY_CONNECTED_DIGRAPH"},
+  // put the canonical labeling (as a list of two perms) into autos[2]
+  out = NEW_PLIST(T_PLIST, 2);
+  SET_ELM_PLIST(out, 1, p);
+  SET_ELM_PLIST(out, 2, q);
+  SET_LEN_PLIST(out, 2);
+  CHANGED_BAG(out);
 
-      {"DIGRAPH_TOPO_SORT",
-       1,
-       "adj",
-       FuncDIGRAPH_TOPO_SORT,
-       "src/digraphs.c:FuncDIGRAPH_TOPO_SORT"},
+  SET_ELM_PLIST(autos, 2, out);
+  CHANGED_BAG(autos);
 
-      {"DIGRAPH_SYMMETRIC_SPANNING_FOREST",
-       1,
-       "adj",
-       FuncDIGRAPH_SYMMETRIC_SPANNING_FOREST,
-       "src/digraphs.c:FuncDIGRAPH_SYMMETRIC_SPANNING_FOREST"},
+  // remove 4th entry of autos (the number of edges) . . .
+  SET_LEN_PLIST(autos, 3);
 
-      {"DIGRAPH_SOURCE_RANGE",
-       1,
-       "digraph",
-       FuncDIGRAPH_SOURCE_RANGE,
-       "src/digraphs.c:FuncDIGRAPH_SOURCE_RANGE"},
+  if (LEN_PLIST(ELM_PLIST(autos, 1)) != 0) {
+    SortDensePlist(ELM_PLIST(autos, 1));
+    RemoveDupsDensePlist(ELM_PLIST(autos, 1));
+  }
+  if (LEN_PLIST(ELM_PLIST(autos, 3)) != 0) {
+    SortDensePlist(ELM_PLIST(autos, 3));
+    RemoveDupsDensePlist(ELM_PLIST(autos, 3));
+  }
+  return autos;
+}
 
-      {"DIGRAPH_OUT_NBS",
-       3,
-       "nrvertices, source, range",
-       FuncDIGRAPH_OUT_NBS,
-       "src/digraphs.c:FuncDIGRAPH_OUT_NBS"},
+static Obj FuncDIGRAPH_CANONICAL_LABELLING(Obj self, Obj digraph, Obj colours) {
+  Obj                 p;
+  UInt4*              ptr;
+  BlissGraph*         graph;
+  Int                 n, i;
+  const unsigned int* canon;
 
-      {"DIGRAPH_IN_OUT_NBS",
-       1,
-       "adj",
-       FuncDIGRAPH_IN_OUT_NBS,
-       "src/digraphs.c:FuncDIGRAPH_IN_OUT_NBS"},
+  if (colours == Fail) {
+    graph = buildBlissDigraph(digraph, NULL, NULL);
+  } else {
+    graph = buildBlissDigraph(digraph, colours, NULL);
+  }
 
-      {"ADJACENCY_MATRIX",
-       1,
-       "digraph",
-       FuncADJACENCY_MATRIX,
-       "src/digraphs.c:FuncADJACENCY_MATRIX"},
+  canon = bliss_digraphs_find_canonical_labeling(graph, 0, 0, 0);
 
-      {"IS_MULTI_DIGRAPH",
-       1,
-       "digraph",
-       FuncIS_MULTI_DIGRAPH,
-       "src/digraphs.c:FuncIS_MULTI_DIGRAPH"},
+  n   = DigraphNrVertices(digraph);
+  p   = NEW_PERM4(n);
+  ptr = ADDR_PERM4(p);
 
-      {"DIGRAPH_SHORTEST_DIST",
-       1,
-       "digraph",
-       FuncDIGRAPH_SHORTEST_DIST,
-       "src/digraphs.c:FuncDIGRAPH_SHORTEST_DIST"},
+  for (i = 0; i < n; i++) {
+    ptr[i] = canon[i];
+  }
+  bliss_digraphs_release(graph);
 
-      {"DIGRAPH_DIAMETER",
-       1,
-       "digraph",
-       FuncDIGRAPH_DIAMETER,
-       "src/digraphs.c:FuncDIGRAPH_DIAMETER"},
+  return p;
+}
 
-      {"IS_TRANSITIVE_DIGRAPH",
-       1,
-       "digraph",
-       FuncIS_TRANSITIVE_DIGRAPH,
-       "src/digraphs.c:FuncIS_TRANSITIVE_DIGRAPH"},
+static Obj
+FuncMULTIDIGRAPH_CANONICAL_LABELLING(Obj self, Obj digraph, Obj colours) {
+  Obj                 p, q, out;
+  UInt4*              ptr;
+  BlissGraph*         graph;
+  Int                 m, n, i;
+  const unsigned int* canon;
 
-      {"DIGRAPH_TRANS_CLOSURE",
-       1,
-       "digraph",
-       FuncDIGRAPH_TRANS_CLOSURE,
-       "src/digraphs.c:FuncDIGRAPH_TRANS_CLOSURE"},
+  if (colours == Fail) {
+    graph = buildBlissMultiDigraph(digraph);
+  } else {
+    graph = buildBlissMultiDigraphWithColours(digraph, colours);
+  }
 
-      {"DIGRAPH_REFLEX_TRANS_CLOSURE",
-       1,
-       "digraph",
-       FuncDIGRAPH_REFLEX_TRANS_CLOSURE,
-       "src/digraphs.c:FuncDIGRAPH_REFLEX_TRANS_CLOSURE"},
+  canon = bliss_digraphs_find_canonical_labeling(graph, 0, 0, 0);
 
-      {"RANDOM_DIGRAPH",
-       2,
-       "nn, limm",
-       FuncRANDOM_DIGRAPH,
-       "src/digraphs.c:FuncRANDOM_DIGRAPH"},
+  m   = DigraphNrVertices(digraph);
+  p   = NEW_PERM4(m);  // perm of vertices
+  ptr = ADDR_PERM4(p);
 
-      {"RANDOM_MULTI_DIGRAPH",
-       2,
-       "nn, mm",
-       FuncRANDOM_MULTI_DIGRAPH,
-       "src/digraphs.c:FuncRANDOM_MULTI_DIGRAPH"},
+  for (i = 0; i < m; i++) {
+    ptr[i] = canon[i];
+  }
 
-      {"DIGRAPH_EQUALS",
-       2,
-       "digraph1, digraph2",
-       FuncDIGRAPH_EQUALS,
-       "src/digraphs.c:FuncDIGRAPH_EQUALS"},
+  n   = DigraphNrEdges(digraph);
+  q   = NEW_PERM4(n);  // perm of edges
+  ptr = ADDR_PERM4(q);
 
-      {"DIGRAPH_LT",
-       2,
-       "digraph1, digraph2",
-       FuncDIGRAPH_LT,
-       "src/digraphs.c:FuncDIGRAPH_LT"},
+  if (colours == Fail) {
+    for (i = 0; i < n; i++) {
+      ptr[i] = canon[2 * i + m] - m;
+    }
+  } else {
+    for (i = 0; i < n; i++) {
+      ptr[i] = canon[2 * i + 3 * m] - 3 * m;
+    }
+  }
 
-      {"DIGRAPH_PATH",
-       3,
-       "digraph, u, v",
-       FuncDIGRAPH_PATH,
-       "src/digraphs.c:FuncDIGRAPH_PATH"},
+  bliss_digraphs_release(graph);
 
-      {"DIGRAPH_AUTOMORPHISMS",
-       3,
-       "digraph, vertex_colours, edge_colours",
-       FuncDIGRAPH_AUTOMORPHISMS,
-       "src/digraphs.c:FuncDIGRAPH_AUTOMORPHISMS"},
-      
-      {"MULTIDIGRAPH_AUTOMORPHISMS",
-       2,
-       "digraph, colours",
-       FuncMULTIDIGRAPH_AUTOMORPHISMS,
-       "src/digraphs.c:FuncMULTIDIGRAPH_AUTOMORPHISMS"},
+  out = NEW_PLIST(T_PLIST, 2);
+  SET_ELM_PLIST(out, 1, p);
+  SET_ELM_PLIST(out, 2, q);
+  SET_LEN_PLIST(out, 2);
+  CHANGED_BAG(out);
+
+  return out;
+}
+
+/*F * * * * * * * * * * * * * initialize package * * * * * * * * * * * * * * */
+
+/******************************************************************************
+ *V  GVarFuncs . . . . . . . . . . . . . . . . . . list of functions to export
+ */
+
+static StructGVarFunc GVarFuncs[] = {
+    {"DIGRAPH_NREDGES",
+     1,
+     "digraph",
+     FuncDIGRAPH_NREDGES,
+     "src/digraphs.c:DIGRAPH_NREDGES"},
+
+    {"GABOW_SCC", 1, "adj", FuncGABOW_SCC, "src/digraphs.c:GABOW_SCC"},
+
+    {"DIGRAPH_CONNECTED_COMPONENTS",
+     1,
+     "digraph",
+     FuncDIGRAPH_CONNECTED_COMPONENTS,
+     "src/digraphs.c:DIGRAPH_CONNECTED_COMPONENTS"},
+
+    {"IS_ACYCLIC_DIGRAPH",
+     1,
+     "adj",
+     FuncIS_ACYCLIC_DIGRAPH,
+     "src/digraphs.c:FuncIS_ACYCLIC_DIGRAPH"},
+
+    {"DIGRAPH_LONGEST_DIST_VERTEX",
+     2,
+     "adj, start",
+     FuncDIGRAPH_LONGEST_DIST_VERTEX,
+     "src/digraphs.c:FuncDIGRAPH_LONGEST_DIST_VERTEX"},
+
+    {"DIGRAPH_TRANS_REDUCTION",
+     2,
+     "adj, loops",
+     FuncDIGRAPH_TRANS_REDUCTION,
+     "src/digraphs.c:FuncDIGRAPH_TRANS_REDUCTION"},
+
+    {"IS_ANTISYMMETRIC_DIGRAPH",
+     1,
+     "adj",
+     FuncIS_ANTISYMMETRIC_DIGRAPH,
+     "src/digraphs.c:FuncIS_ANTISYMMETRIC_DIGRAPH"},
+
+    {"IS_STRONGLY_CONNECTED_DIGRAPH",
+     1,
+     "adj",
+     FuncIS_STRONGLY_CONNECTED_DIGRAPH,
+     "src/digraphs.c:FuncIS_STRONGLY_CONNECTED_DIGRAPH"},
+
+    {"DIGRAPH_TOPO_SORT",
+     1,
+     "adj",
+     FuncDIGRAPH_TOPO_SORT,
+     "src/digraphs.c:FuncDIGRAPH_TOPO_SORT"},
+
+    {"DIGRAPH_SYMMETRIC_SPANNING_FOREST",
+     1,
+     "adj",
+     FuncDIGRAPH_SYMMETRIC_SPANNING_FOREST,
+     "src/digraphs.c:FuncDIGRAPH_SYMMETRIC_SPANNING_FOREST"},
+
+    {"DIGRAPH_SOURCE_RANGE",
+     1,
+     "digraph",
+     FuncDIGRAPH_SOURCE_RANGE,
+     "src/digraphs.c:FuncDIGRAPH_SOURCE_RANGE"},
+
+    {"DIGRAPH_OUT_NBS",
+     3,
+     "nrvertices, source, range",
+     FuncDIGRAPH_OUT_NBS,
+     "src/digraphs.c:FuncDIGRAPH_OUT_NBS"},
+
+    {"DIGRAPH_IN_OUT_NBS",
+     1,
+     "adj",
+     FuncDIGRAPH_IN_OUT_NBS,
+     "src/digraphs.c:FuncDIGRAPH_IN_OUT_NBS"},
+
+    {"ADJACENCY_MATRIX",
+     1,
+     "digraph",
+     FuncADJACENCY_MATRIX,
+     "src/digraphs.c:FuncADJACENCY_MATRIX"},
+
+    {"IS_MULTI_DIGRAPH",
+     1,
+     "digraph",
+     FuncIS_MULTI_DIGRAPH,
+     "src/digraphs.c:FuncIS_MULTI_DIGRAPH"},
+
+    {"DIGRAPH_SHORTEST_DIST",
+     1,
+     "digraph",
+     FuncDIGRAPH_SHORTEST_DIST,
+     "src/digraphs.c:FuncDIGRAPH_SHORTEST_DIST"},
+
+    {"DIGRAPH_DIAMETER",
+     1,
+     "digraph",
+     FuncDIGRAPH_DIAMETER,
+     "src/digraphs.c:FuncDIGRAPH_DIAMETER"},
+
+    {"IS_TRANSITIVE_DIGRAPH",
+     1,
+     "digraph",
+     FuncIS_TRANSITIVE_DIGRAPH,
+     "src/digraphs.c:FuncIS_TRANSITIVE_DIGRAPH"},
+
+    {"DIGRAPH_TRANS_CLOSURE",
+     1,
+     "digraph",
+     FuncDIGRAPH_TRANS_CLOSURE,
+     "src/digraphs.c:FuncDIGRAPH_TRANS_CLOSURE"},
+
+    {"DIGRAPH_REFLEX_TRANS_CLOSURE",
+     1,
+     "digraph",
+     FuncDIGRAPH_REFLEX_TRANS_CLOSURE,
+     "src/digraphs.c:FuncDIGRAPH_REFLEX_TRANS_CLOSURE"},
+
+    {"RANDOM_DIGRAPH",
+     2,
+     "nn, limm",
+     FuncRANDOM_DIGRAPH,
+     "src/digraphs.c:FuncRANDOM_DIGRAPH"},
+
+    {"RANDOM_MULTI_DIGRAPH",
+     2,
+     "nn, mm",
+     FuncRANDOM_MULTI_DIGRAPH,
+     "src/digraphs.c:FuncRANDOM_MULTI_DIGRAPH"},
+
+    {"DIGRAPH_EQUALS",
+     2,
+     "digraph1, digraph2",
+     FuncDIGRAPH_EQUALS,
+     "src/digraphs.c:FuncDIGRAPH_EQUALS"},
+
+    {"DIGRAPH_LT",
+     2,
+     "digraph1, digraph2",
+     FuncDIGRAPH_LT,
+     "src/digraphs.c:FuncDIGRAPH_LT"},
+
+    {"DIGRAPH_PATH",
+     3,
+     "digraph, u, v",
+     FuncDIGRAPH_PATH,
+     "src/digraphs.c:FuncDIGRAPH_PATH"},
+
+    {"DIGRAPH_AUTOMORPHISMS",
+     3,
+     "digraph, vertex_colours, edge_colours",
+     FuncDIGRAPH_AUTOMORPHISMS,
+     "src/digraphs.c:FuncDIGRAPH_AUTOMORPHISMS"},
+
+    {"MULTIDIGRAPH_AUTOMORPHISMS",
+     2,
+     "digraph, colours",
+     FuncMULTIDIGRAPH_AUTOMORPHISMS,
+     "src/digraphs.c:FuncMULTIDIGRAPH_AUTOMORPHISMS"},
 
     {"DIGRAPH_CANONICAL_LABELLING",
      2,

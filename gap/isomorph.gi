@@ -91,6 +91,21 @@ end);
 #   return data;
 # end);
 
+BindGlobal("BLISS_DATA_NC",
+function(digraph, vert_colours, edge_colours)
+  local data;
+  data := DIGRAPH_AUTOMORPHISMS(digraph,
+                                vert_colours,
+                                edge_colours);
+
+  if IsEmpty(data[1]) then
+    data[1] := [()];
+  fi;
+  data[1] := Group(data[1]);
+
+  return data;
+end);
+
 ## The argument <vert_colours> should be a list of colours of the vertices
 ## of <digraph>, and the argument <edge_colours> should be a list of
 ## lists of the same shape as OutNeighbours(<digraph>).
@@ -100,24 +115,15 @@ end);
 ## second is the canonical labelling.
 BindGlobal("BLISS_DATA",
 function(D, vert_colours, edge_colours, calling_function_name)
-  local data;
-  orientation_double := false;
   if vert_colours <> fail then
     vert_colours := DIGRAPHS_ValidateVertexColouring(DigraphNrVertices(D),
-                                               vert_colours,
-                                               calling_function_name);
+                                                     vert_colours,
+                                                     calling_function_name);
   fi;
-
-  DIGRAPHS_ValidateEdgeColouring(D, vert_colours, edge_colours);
-
-  data := DIGRAPH_AUTOMORPHISMS(D, vert_colours, edge_colours);
-
-  if IsEmpty(data[1]) then
-    data[1] := [()];
-  fi;
-  data[1] := Group(data[1]);
-
-  return data;
+  DIGRAPHS_ValidateEdgeColouring(D,
+                                 vert_colours,
+                                 edge_colours);
+  return BLISS_DATA_NC(D, vert_colours, edge_colours);
 end);
 
 BindGlobal("BLISS_DATA_NO_COLORS",
