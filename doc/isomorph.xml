@@ -265,7 +265,7 @@ true]]></Example>
 
   <Example><![CDATA[
 gap> cycle := CycleDigraph(12);
-<digraph with 12 vertices, 12 edges>
+<immutable digraph with 12 vertices, 12 edges>
 gap> vert_colours := List([1 .. 12], x -> x mod 3 + 1);;
 gap> edge_colours := List([1 .. 12], x -> [x mod 2 + 1]);;
 gap> Size(AutomorphismGroup(cycle));

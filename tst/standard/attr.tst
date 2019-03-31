@@ -1049,6 +1049,7 @@ gap> DigraphDiameter(gr);
 gap> DigraphUndirectedGirth(gr);
 1
 gap> gr := Digraph([[2, 2, 4, 4], [1, 1, 3], [2], [1, 1, 5], [4]]);
+<immutable multidigraph with 5 vertices, 12 edges>
 gap> DigraphDiameter(gr);
 4
 gap> DigraphUndirectedGirth(gr);

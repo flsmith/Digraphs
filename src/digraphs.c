@@ -1606,53 +1606,6 @@ BlissGraph* buildBlissMultiDigraph(Obj digraph) {
   return graph;
 }
 
-<<<<<<< HEAD
-/*
-BlissGraph* buildBlissDigraphWithColours(Obj digraph, Obj colours) {
-  UInt        n, i, j, nr;
-  Obj         adji, adj;
-  BlissGraph* graph;
-
-  n = DigraphNrVertices(digraph);
-  if (colours) {
-    DIGRAPHS_ASSERT(n == (UInt) LEN_LIST(colours));
-  }
-  graph = bliss_digraphs_new(0);
-  adj   = FuncOutNeighbours(0L, digraph);
-
-  if (colours) {
-    for (i = 1; i <= n; i++) {
-      bliss_digraphs_add_vertex(graph, INT_INTOBJ(ELM_LIST(colours, i)));
-    }
-  } else {
-    for (i = 1; i <= n; i++) {
-      bliss_digraphs_add_vertex(graph, 1);
-    }
-  }
-  for (i = 1; i <= n; i++) {
-    bliss_digraphs_add_vertex(graph, n + 1);
-  }
-  for (i = 1; i <= n; i++) {
-    bliss_digraphs_add_vertex(graph, n + 2);
-  }
-
-  for (i = 1; i <= n; i++) {
-    bliss_digraphs_add_edge(graph, i - 1, n + i - 1);
-    bliss_digraphs_add_edge(graph, i - 1, 2 * n + i - 1);
-    adji = ELM_PLIST(adj, i);
-    nr   = LEN_PLIST(adji);
-    for (j = 1; j <= nr; j++) {
-      bliss_digraphs_add_edge(
-          graph, n + i - 1, 2 * n + INT_INTOBJ(ELM_PLIST(adji, j)) - 1);
-    }
-  }
-
-  return graph;
-}
-*/
-
-=======
->>>>>>> fixup
 // TODO: document mult (and everything else)
 BlissGraph* buildBlissDigraph(Obj digraph, Obj vert_colours, Obj edge_colours) {
   uint64_t    colour, mult, num_vc, num_ec, n, i, j, k, nr;
@@ -1675,7 +1628,7 @@ BlissGraph* buildBlissDigraph(Obj digraph, Obj vert_colours, Obj edge_colours) {
     }
   }
 
-  adj = OutNeighbours(digraph);
+  adj = FuncOutNeighbours(0L, digraph);
 
   if (edge_colours != Fail) {
     DIGRAPHS_ASSERT(n == (uint64_t) LEN_LIST(edge_colours));
@@ -2130,8 +2083,8 @@ static StructGVarFunc GVarFuncs[] = {
      "src/digraphs.c:FuncDIGRAPH_LONGEST_DIST_VERTEX"},
 
     {"DIGRAPH_TRANS_REDUCTION",
-     2,
-     "adj, loops",
+     1,
+     "list",
      FuncDIGRAPH_TRANS_REDUCTION,
      "src/digraphs.c:FuncDIGRAPH_TRANS_REDUCTION"},
 
@@ -2165,11 +2118,23 @@ static StructGVarFunc GVarFuncs[] = {
      FuncDIGRAPH_SOURCE_RANGE,
      "src/digraphs.c:FuncDIGRAPH_SOURCE_RANGE"},
 
-    {"DIGRAPH_OUT_NBS",
+    {"DIGRAPH_OUT_NEIGHBOURS",
+     1,
+     "D",
+     FuncOutNeighbours,
+     "src/digraphs.c:FuncOutNeighbours"},
+
+    {"DIGRAPH_OUT_NEIGHBOURS_FROM_SOURCE_RANGE",
      3,
-     "nrvertices, source, range",
-     FuncDIGRAPH_OUT_NBS,
-     "src/digraphs.c:FuncDIGRAPH_OUT_NBS"},
+     "N, source, range",
+     FuncOutNeighboursFromSourceRange,
+     "src/digraphs.c:FuncOutNeighboursFromSourceRange"},
+
+    {"DIGRAPH_NR_VERTICES",
+     1,
+     "D",
+     FuncDigraphNrVertices,
+     "src/digraphs.c:FuncDigraphNrVertices"},
 
     {"DIGRAPH_IN_OUT_NBS",
      1,
@@ -2251,7 +2216,7 @@ static StructGVarFunc GVarFuncs[] = {
 
     {"DIGRAPH_AUTOMORPHISMS",
      3,
-     "digraph, vertex_colours, edge_colours",
+     "digraph, vert_colours, edge_colours",
      FuncDIGRAPH_AUTOMORPHISMS,
      "src/digraphs.c:FuncDIGRAPH_AUTOMORPHISMS"},
 

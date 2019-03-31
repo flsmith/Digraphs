@@ -32,11 +32,11 @@ Group([ (1,2) ])
 
 #  DigraphGroup
 gap> gr := Digraph([[2, 3], [1], [2]]);
-<digraph with 3 vertices, 4 edges>
+<immutable digraph with 3 vertices, 4 edges>
 gap> DigraphGroup(gr);
 Group(())
 gap> gr := Digraph([[3], [3], [1, 2, 3]]);
-<digraph with 3 vertices, 5 edges>
+<immutable digraph with 3 vertices, 5 edges>
 gap> Size(AutomorphismGroup(gr));
 2
 gap> gr := Digraph([[3, 2], [1], [1]]);

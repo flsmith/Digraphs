@@ -117,8 +117,7 @@ BindGlobal("BLISS_DATA",
 function(D, vert_colours, edge_colours, calling_function_name)
   if vert_colours <> fail then
     vert_colours := DIGRAPHS_ValidateVertexColouring(DigraphNrVertices(D),
-                                                     vert_colours,
-                                                     calling_function_name);
+                                                     vert_colours);
   fi;
   DIGRAPHS_ValidateEdgeColouring(D,
                                  vert_colours,

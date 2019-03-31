@@ -443,7 +443,7 @@ true
 
 #  CanonicalLabelling: for a digraph with no automorphisms
 gap> gr := ChainDigraph(5);               
-<digraph with 5 vertices, 4 edges>
+<immutable digraph with 5 vertices, 4 edges>
 gap> BlissCanonicalLabelling(gr);
 (1,5)(2,4)
 gap> BlissCanonicalLabelling(BlissCanonicalDigraph(gr));
