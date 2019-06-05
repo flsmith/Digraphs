@@ -1725,7 +1725,7 @@ BlissGraph* buildBlissMultiDigraphWithColours(Obj digraph, Obj colours) {
   n = DigraphNrVertices(digraph);
   DIGRAPHS_ASSERT(n == (UInt) LEN_LIST(colours));
   graph = bliss_digraphs_new(0);
-  adj   = OutNeighbours(digraph);
+  adj   = FuncOutNeighbours(0L, digraph);
 
   for (i = 1; i <= n; i++) {
     bliss_digraphs_add_vertex(graph, INT_INTOBJ(ELM_LIST(colours, i)));
