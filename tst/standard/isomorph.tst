@@ -687,7 +687,7 @@ gap> G := AutomorphismGroup(gr);;
 gap> Image(Projection(G, 1)) = SymmetricGroup(4);
 true
 gap> StructureDescription(Image(Projection(G, 2)));
-"C2 x C2 x C2 x C2 x C2 x C2 x C2 x C2 x C2 x C2 x C2"
+"C2 x C2 x C2 x C2 x C2 x C2 x C2 x C2 x C2 x C2 x C2 x C2"
 
 # A small example
 gap> gr := Digraph([[2], [1, 3], [], [3, 3]]);

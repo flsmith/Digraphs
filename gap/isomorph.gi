@@ -77,9 +77,9 @@ function(digraph, vert_colours, edge_colours)
   fi;
   data[1] := Group(data[1]);
 
-  if Length(mults) > 0 then
-    data[1] := DirectProduct(Concatenation([data[1]],
-                                           List(mults,
+  if Length(mults) > 1 then
+    data[1] := DirectProduct(data[1],
+                             DirectProduct(List(mults,
                                                 x -> SymmetricGroup(x))));
   fi;
   return data;
@@ -657,7 +657,7 @@ end);
 
 InstallGlobalFunction(DIGRAPHS_CollapseMultiColouredEdges,
 function(D, edge_colours)
-  local n, dict, mults, out, new_cols, adjv, colsv, run, cur, cols, lookup, v;
+  local n, dict, mults, out, new_cols, idx, adjv, indices, colsv, p, run, cur, range, cols, C, lookup, v, i;
   n := DigraphNrVertices(D);
   dict := NewDictionary([1], true);
   mults := [];
@@ -666,11 +666,15 @@ function(D, edge_colours)
   if edge_colours = fail then
     edge_colours := List([1 .. n], x -> List(OutNeighbours(D)[x], y -> 1));
   fi;
+  idx := 1;
   for v in [1 .. n] do
     adjv := ShallowCopy(OutNeighbours(D)[v]);
     if Length(adjv) > 0 then
+      indices := [idx .. idx + Length(adjv) - 1];
       colsv := ShallowCopy(edge_colours[v]);
-      SortParallel(adjv, colsv);
+      p := Sortex(adjv);
+      colsv := Permuted(colsv, p);
+      indices := Permuted(indices, p);
 
       run := 1;
       cur := 1;
@@ -679,11 +683,14 @@ function(D, edge_colours)
           run := run + 1;
         else
           Add(out[v], adjv[cur]);
-          cols := colsv{[cur - run + 1 .. cur]};
+          range := [cur - run + 1 .. cur];
+          cols := colsv{range};
+          C := List([1 .. Maximum(cols)], x -> []);
+          for i in range do
+            Add(C[colsv[i]], indices[i]);
+          od;
+          Append(mults, Filtered(C, x -> Length(x) > 1));
           Sort(cols);
-          Append(mults, Filtered(List(Collected(cols), 
-                                      x -> x[2]),
-                                 y -> y <> 1));
           lookup := LookupDictionary(dict, cols);
           if lookup = fail then
             lookup := Size(dict) + 1;
@@ -695,11 +702,14 @@ function(D, edge_colours)
         cur := cur + 1;
       od;
       Add(out[v], adjv[cur]);
-      cols := colsv{[cur - run + 1 .. cur]};
+      range := [cur - run + 1 .. cur];
+      cols := colsv{range};
+      C := List([1 .. Maximum(cols)], x -> []);
+      for i in range do
+        Add(C[colsv[i]], indices[i]);
+      od;
+      Append(mults, Filtered(C, x -> Length(x) > 1));
       Sort(cols);
-      Append(mults, Filtered(List(Collected(cols), 
-                                  x -> x[2]),
-                             y -> y <> 1));
       lookup := LookupDictionary(dict, cols);
       if lookup = fail then
         lookup := Size(dict) + 1;
@@ -707,6 +717,7 @@ function(D, edge_colours)
       fi;
       Add(new_cols[v], lookup);
     fi;
+    idx := idx + Length(adjv);
   od;
   return [Digraph(out), new_cols, mults]; 
 end);
