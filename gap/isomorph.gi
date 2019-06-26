@@ -65,24 +65,34 @@ function(digraph, vert_colours, edge_colours)
     digraph := collapsed[1];
     edge_colours := collapsed[2];
     mults := collapsed[3];
-  else
-    mults := [];
-  fi;
     
-  data := DIGRAPH_AUTOMORPHISMS(digraph,
-                                vert_colours,
-                                edge_colours);
-  if IsEmpty(data[1]) then
-    data[1] := [()];
+    data := DIGRAPH_AUTOMORPHISMS(digraph,
+                                  vert_colours,
+                                  edge_colours);
+    if IsEmpty(data[1]) then
+      data[1] := [()];
+    fi;
+    data[1] := Group(data[1]);
+  
+    if Length(mults) > 0 then
+      data[1] := DirectProduct(data[1],
+                              Group(Flat(List(mults, 
+                                              x -> GeneratorsOfGroup(SymmetricGroup(x))))));
+    else
+      data[1] := DirectProduct(data[1], Group(()));
+    fi;
+    data[2] := [data[2], ()];
+    return data;
+  else
+    data := DIGRAPH_AUTOMORPHISMS(digraph,
+                                  vert_colours,
+                                  edge_colours);
+    if IsEmpty(data[1]) then
+      data[1] := [()];
+    fi;
+    data[1] := Group(data[1]);
+    return data;
   fi;
-  data[1] := Group(data[1]);
-
-  if Length(mults) > 1 then
-    data[1] := DirectProduct(data[1],
-                             DirectProduct(List(mults,
-                                                x -> SymmetricGroup(x))));
-  fi;
-  return data;
 end);
 
 ## The argument <vert_colours> should be a list of colours of the vertices
@@ -242,6 +252,9 @@ function(D)
   data := BLISS_DATA_NO_COLORS(D);
   SetBlissCanonicalLabelling(D, data[2]);
   if not HasDigraphGroup(D) then
+    if IsMultiDigraph(D) then
+      SetDigraphGroup(D, Range(Projection(data[1], 1)));
+    fi;
     SetDigraphGroup(D, data[1]);
   fi;
   return data[1];
@@ -657,12 +670,14 @@ end);
 
 InstallGlobalFunction(DIGRAPHS_CollapseMultiColouredEdges,
 function(D, edge_colours)
-  local n, dict, mults, out, new_cols, idx, adjv, indices, colsv, p, run, cur, range, cols, C, lookup, v, i;
+  local n, dict, mults, out, new_cols, new_cols_set, idx, adjv, indices, colsv,
+  p, run, cur, range, cols, C, v, i;
   n := DigraphNrVertices(D);
   dict := NewDictionary([1], true);
   mults := [];
   out := List([1 .. n], x -> []);
   new_cols := List([1 .. n], x -> []);
+  new_cols_set := [];
   if edge_colours = fail then
     edge_colours := List([1 .. n], x -> List(OutNeighbours(D)[x], y -> 1));
   fi;
@@ -691,12 +706,8 @@ function(D, edge_colours)
           od;
           Append(mults, Filtered(C, x -> Length(x) > 1));
           Sort(cols);
-          lookup := LookupDictionary(dict, cols);
-          if lookup = fail then
-            lookup := Size(dict) + 1;
-            AddDictionary(dict, cols, Size(dict) + 1);
-          fi;
-          Add(new_cols[v], lookup);
+          AddSet(new_cols_set, cols);
+          Add(new_cols[v], cols);
           run := 1;
         fi;
         cur := cur + 1;
@@ -710,14 +721,15 @@ function(D, edge_colours)
       od;
       Append(mults, Filtered(C, x -> Length(x) > 1));
       Sort(cols);
-      lookup := LookupDictionary(dict, cols);
-      if lookup = fail then
-        lookup := Size(dict) + 1;
-        AddDictionary(dict, cols, Size(dict) + 1);
-      fi;
-      Add(new_cols[v], lookup);
+      AddSet(new_cols_set, cols);
+      Add(new_cols[v], cols);
     fi;
     idx := idx + Length(adjv);
+  od;
+  for cols in new_cols do
+    for i in [1 .. Length(cols)] do
+      cols[i] := Position(new_cols_set, cols[i]);
+    od;
   od;
   return [Digraph(out), new_cols, mults]; 
 end);
