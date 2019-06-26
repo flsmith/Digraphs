@@ -76,7 +76,7 @@ function(digraph, vert_colours, edge_colours)
 
     if Length(mults) > 0 then
       edge_gp := Group(Flat(List(mults,
-                                 x -> GeneratorsOfGroup(SymmetricGroup(x)))))
+                                 x -> GeneratorsOfGroup(SymmetricGroup(x)))));
       data[1] := DirectProduct(data[1], edge_gp);
     else
       data[1] := DirectProduct(data[1], Group(()));

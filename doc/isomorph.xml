@@ -106,11 +106,15 @@ Group([ (3,4)(6,7)(8,9), (2,3)(5,6)(9,10), (2,5)(3,6)(4,7), (1,2)(6,8)(7,9) ])]]
       Oper="IsomorphismDigraphs" Label="for digraphs" /> for more information
     about isomorphisms of digraphs. <P/>
 
-    This automorphism group can only be computed when <A>digraph</A> has no
-    multiple edges; see <Ref Prop="IsMultiDigraph" />. <P/>
+    If <A>digraph</A> is not a multidigraph then the automorphism group is
+    returned as a group of permutations on the set of vertices of
+    <A>digraph</A>. <P/>
 
-    The automorphism group is returned as a group of permutations on the set
-    of vertices of <A>digraph</A>. <P/>
+    If <A>digraph</A> is a multidigraph then the automorphism group is returned
+    as the direct product of a group of permutations on the set of vertices of
+    <A>digraph</A> with a group of permutations on the set of edges of
+    <A>digraph</A>. These groups can be accessed using <Ref Attr="Projection"/>
+    on the returned group.<P/>
 
     By default, the automorphism group is found using &bliss; by Tommi Junttila
     and Petteri Kaski. If &NautyTracesInterface; is available, then &nauty; by
@@ -170,11 +174,15 @@ true]]></Example>
       Oper="IsomorphismDigraphs" Label="for digraphs and homogeneous lists" />
     for more information about isomorphisms of coloured digraphs. <P/>
 
-    This automorphism group can only be computed when <A>digraph</A> has no
-    multiple edges; see <Ref Prop="IsMultiDigraph" />. <P/>
+    If <A>digraph</A> is not a multidigraph then the automorphism group is
+    returned as a group of permutations on the set of vertices of
+    <A>digraph</A>. <P/>
 
-    The automorphism group is returned as a group of permutations on the set
-    of vertices of <A>digraph</A>. <P/>
+    If <A>digraph</A> is a multidigraph then the automorphism group is returned
+    as the direct product of a group of permutations on the set of vertices of
+    <A>digraph</A> with a group of permutations on the set of edges of
+    <A>digraph</A>. These groups can be accessed using <Ref Attr="Projection"/>
+    on the returned group.<P/>
 
     By default, the automorphism group is found using &bliss; by Tommi Junttila
     and Petteri Kaski. If &NautyTracesInterface; is available, then &nauty; by
@@ -251,11 +259,15 @@ true]]></Example>
       Oper="IsomorphismDigraphs" Label="for digraphs and homogeneous lists" />
     for more information about isomorphisms of coloured digraphs. <P/>
 
-    This automorphism group can only be computed when <A>digraph</A> has no
-    multiple edges; see <Ref Prop="IsMultiDigraph" />. <P/>
+    If <A>digraph</A> is not a multidigraph then the automorphism group is
+    returned as a group of permutations on the set of vertices of
+    <A>digraph</A>. <P/>
 
-    The automorphism group is returned as a group of permutations on the set
-    of vertices of <A>digraph</A>. <P/>
+    If <A>digraph</A> is a multidigraph then the automorphism group is returned
+    as the direct product of a group of permutations on the set of vertices of
+    <A>digraph</A> with a group of permutations on the set of edges of
+    <A>digraph</A>. These groups can be accessed using <Ref Attr="Projection"/>
+    on the returned group.<P/>
 
     By default, the automorphism group is found using &bliss; by Tommi Junttila
     and Petteri Kaski. If &NautyTracesInterface; is available, then &nauty; by
