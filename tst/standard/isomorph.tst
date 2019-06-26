@@ -689,6 +689,18 @@ true
 gap> StructureDescription(Image(Projection(G, 2)));
 "C2 x C2 x C2 x C2 x C2 x C2 x C2 x C2 x C2 x C2 x C2 x C2"
 
+# AutomorphismGroup for a multidigraph with repeated edges
+gap> D := Digraph([[2, 2, 4], [3], [2], [1, 2, 2]]);
+<immutable multidigraph with 4 vertices, 8 edges>
+gap> v_cols := [1, 2, 2, 1];;              
+gap> e_cols := [[1, 1, 2], [3], [4], [2, 1, 1]];;
+gap> G := AutomorphismGroup(D, v_cols, e_cols);
+Group([ (1,2), (3,4), (5,6) ])
+gap> Range(Projection(G, 1));
+Group([ (1,4) ])
+gap> Range(Projection(G, 2));
+Group([ (1,2), (7,8) ])
+
 # A small example
 gap> gr := Digraph([[2], [1, 3], [], [3, 3]]);
 <immutable multidigraph with 4 vertices, 5 edges>

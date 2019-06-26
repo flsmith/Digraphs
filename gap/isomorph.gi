@@ -59,13 +59,13 @@ end);
 
 BindGlobal("BLISS_DATA_NC",
 function(digraph, vert_colours, edge_colours)
-  local collapsed, mults, data;
+  local collapsed, mults, data, edge_gp;
   if IsMultiDigraph(digraph) then
-    collapsed := DIGRAPHS_CollapseMultiColouredEdges(digraph, edge_colours);
-    digraph := collapsed[1];
-    edge_colours := collapsed[2];
-    mults := collapsed[3];
-    
+    collapsed     := DIGRAPHS_CollapseMultiColouredEdges(digraph, edge_colours);
+    digraph       := collapsed[1];
+    edge_colours  := collapsed[2];
+    mults         := collapsed[3];
+
     data := DIGRAPH_AUTOMORPHISMS(digraph,
                                   vert_colours,
                                   edge_colours);
@@ -73,11 +73,11 @@ function(digraph, vert_colours, edge_colours)
       data[1] := [()];
     fi;
     data[1] := Group(data[1]);
-  
+
     if Length(mults) > 0 then
-      data[1] := DirectProduct(data[1],
-                              Group(Flat(List(mults, 
-                                              x -> GeneratorsOfGroup(SymmetricGroup(x))))));
+      edge_gp := Group(Flat(List(mults,
+                                 x -> GeneratorsOfGroup(SymmetricGroup(x)))))
+      data[1] := DirectProduct(data[1], edge_gp);
     else
       data[1] := DirectProduct(data[1], Group(()));
     fi;
@@ -626,8 +626,7 @@ end);
 
 InstallGlobalFunction(DIGRAPHS_ValidateEdgeColouring,
 function(graph, edge_colouring)
-  local n, colours, m, adji, cols, cur, w, seen_colours,
-  adj_colours, i, j;
+  local n, colours, m, adj_colours, i;
 
   if not IsDigraph(graph) then
     ErrorNoReturn("the 1st argument must be a digraph");
@@ -670,10 +669,9 @@ end);
 
 InstallGlobalFunction(DIGRAPHS_CollapseMultiColouredEdges,
 function(D, edge_colours)
-  local n, dict, mults, out, new_cols, new_cols_set, idx, adjv, indices, colsv,
+  local n, mults, out, new_cols, new_cols_set, idx, adjv, indices, colsv,
   p, run, cur, range, cols, C, v, i;
   n := DigraphNrVertices(D);
-  dict := NewDictionary([1], true);
   mults := [];
   out := List([1 .. n], x -> []);
   new_cols := List([1 .. n], x -> []);
@@ -731,7 +729,7 @@ function(D, edge_colours)
       cols[i] := Position(new_cols_set, cols[i]);
     od;
   od;
-  return [Digraph(out), new_cols, mults]; 
+  return [Digraph(out), new_cols, mults];
 end);
 
 InstallMethod(IsDigraphIsomorphism, "for digraph, digraph, and permutation",
